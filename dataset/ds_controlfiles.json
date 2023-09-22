@@ -1,0 +1,26 @@
+{
+	"name": "ds_controlfiles",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_a4ltriplea",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "File type",
+				"type": "varchar"
+			},
+			{
+				"name": "File name",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "control_files"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

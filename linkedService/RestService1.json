@@ -1,0 +1,13 @@
+{
+	"name": "RestService1",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://https://tripleaformrecog.cognitiveservices.azure.com//formrecognizer/documentModels/FMCMODEL?api-version=2022-08-31",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}

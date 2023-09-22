@@ -1,0 +1,65 @@
+{
+	"name": "pipeline4",
+	"properties": {
+		"activities": [
+			{
+				"name": "WebDestination",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://formrecogdestination.cognitiveservices.azure.com/formrecognizer/documentModels:authorizeCopy?api-version=2023-07-31",
+					"method": "POST",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": "5a17bb41892344b9a77a9aeca39257b9"
+					},
+					"body": {
+						"modelId": "Test_Dest13",
+						"description": "Copied from SCUS"
+					}
+				}
+			},
+			{
+				"name": "WebSource",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "WebDestination",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://testformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/TestFMC1:copyTo?api-version=2023-07-31",
+					"method": "POST",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": "1c29a8971d8342ea946d80520bf52e78"
+					},
+					"body": {
+						"value": "{\n\t\"targetResourceId\": \"@{activity('WebDestination').output.targetResourceId}\",\n\t\"targetResourceRegion\": \"@{activity('WebDestination').output.targetResourceRegion}\",\n\t\"targetModelId\": \"@{activity('WebDestination').output.targetModelId}\",\n\t\"targetModelLocation\": \"@{activity('WebDestination').output.targetModelLocation}\",\n\t\"accessToken\": \"@{activity('WebDestination').output.accessToken}\",\n\t\"expirationDateTime\": \"@{activity('WebDestination').output.expirationDateTime}\"\n  }\n\t",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-09-01T08:47:00Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

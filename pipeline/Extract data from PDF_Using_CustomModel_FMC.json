@@ -1,0 +1,236 @@
+{
+	"name": "Extract data from PDF_Using_CustomModel_FMC",
+	"properties": {
+		"description": "Use this template to extract data from a PDF source.",
+		"activities": [
+			{
+				"name": "Form Recognizer - POST",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().parameters.FormRecognizerURL",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": {
+							"value": "@pipeline().parameters.FormRecognizerKey",
+							"type": "Expression"
+						},
+						"contet-type": "application/pdf"
+					},
+					"body": {
+						"value": "@concat('{\"urlSource\":\"',pipeline().parameters.PDF_SourceURL,'\"}')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "GetPDFData_Dataflow",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "stage",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "JsonToTable_binderkontraktjson-type42",
+						"type": "DataFlowReference",
+						"parameters": {
+							"Filename1": {
+								"value": "'@{activity('Get Metadata1').output.childItems[1].name}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
+				}
+			},
+			{
+				"name": "stage",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Wait1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "stagejsonDataflow2",
+						"type": "DataFlowReference",
+						"parameters": {
+							"Key": {
+								"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"source1": {
+								"url": {
+									"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "None",
+					"cacheSinks": {
+						"firstRowOnly": true
+					}
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Form Recognizer - POST",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 20
+				}
+			},
+			{
+				"name": "csvToAzureSqldb",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "GetPDFData_Dataflow",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "csvToSQLdb_Type4",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_FMC_PDF_Raw",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"FormRecognizerURL": {
+				"type": "string",
+				"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/FMC_mixed_model:analyze?api-version=2022-08-31"
+			},
+			"FormRecognizerKey": {
+				"type": "string",
+				"defaultValue": "0987f7cf06fe4ff0a5f07ffaeb35986f"
+			},
+			"PDF_SourceURL": {
+				"type": "string",
+				"defaultValue": "https://adlsa4ltriplea.blob.core.windows.net/fmcpdf/RAW/FMC%20Purchase%20Order%20-%204500130257.pdf?sp=r&st=2023-05-24T12:36:58Z&se=2023-05-24T20:36:58Z&spr=https&sv=2022-11-02&sr=b&sig=78UR1AcvHCtdupb7ow3hQKAHlJbgdBpT0lRDknkboFw%3D"
+			}
+		},
+		"variables": {
+			"URL": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PDF Extract"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-24T12:42:29Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,195 @@
+{
+	"name": "JsonToTable_test_1",
+	"properties": {
+		"description": "This dataflow takes the output from Form Recognizer and extracts the table information to a storage sink.\nThis specifically works with the Form Recognizer Layout API. You can also save the transformations as a flowlet if you would like to reuse the logic in other dataflows. ",
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "ls_source_triplea",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_source_triplea",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "ls_source_triplea",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "aggregate1"
+				},
+				{
+					"name": "flatten2"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "flatten3"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "sort1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "aggregate2"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "pivot1"
+				},
+				{
+					"name": "filter3"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          body as (analyzeResult as (apiVersion as date, content as string, documents as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as boolean, docType as string, fields as (BillingAddress as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueAddress as (city as string, houseNumber as boolean, postalCode as short, road as string, streetAddress as string)), BillingAddressRecipient as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), CustomerAddress as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueAddress as (city as string, houseNumber as string, postalCode as short, road as string, streetAddress as string)), CustomerAddressRecipient as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), CustomerName as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), InvoiceDate as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueDate as date), InvoiceTotal as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueCurrency as (amount as double)), Items as (type as string, valueArray as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueObject as (Amount as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueCurrency as (amount as double)), Date as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueDate as date), Description as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), ProductCode as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as integer, spans as (length as short, offset as short)[], type as string, valueString as integer), Quantity as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as double, spans as (length as short, offset as short)[], type as string, valueNumber as integer), Unit as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), UnitPrice as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueCurrency as (amount as double))))[]), PaymentDetails as (type as string, valueArray as (confidence as double, type as string, valueObject as (IBAN as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), SWIFT as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)))[]), PaymentTerm as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), ShippingAddress as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueAddress as (city as string, houseNumber as boolean, postalCode as string, road as string, streetAddress as string)), VendorAddress as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueAddress as (city as string, postalCode as string, streetAddress as string)), VendorAddressRecipient as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), VendorName as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), VendorTaxId as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)), spans as (length as short, offset as boolean)[])[], keyValuePairs as (confidence as double, key as (boundingRegions as (pageNumber as short, polygon as double[])[], content as string, spans as (length as short, offset as short)[]), value as (boundingRegions as (pageNumber as short, polygon as double[])[], content as string, spans as (length as short, offset as short)[]))[], modelId as string, pages as (angle as double, height as double, kind as string, lines as (content as string, polygon as double[], spans as (length as short, offset as short)[])[], pageNumber as short, selectionMarks as (confidence as double, polygon as double[], span as (length as short, offset as short), state as string)[], spans as (length as short, offset as short)[], unit as string, width as double, words as (confidence as double, content as string, polygon as double[], span as (length as short, offset as short))[])[], paragraphs as (boundingRegions as (pageNumber as short, polygon as double[])[], content as string, role as string, spans as (length as short, offset as short)[])[], stringIndexType as string, styles as (confidence as boolean, isHandwritten as boolean, spans as (length as boolean, offset as short)[])[], tables as (boundingRegions as (pageNumber as short, polygon as double[])[], cells as (boundingRegions as (pageNumber as short, polygon as double[])[], columnIndex as short, columnSpan as short, content as string, kind as string, rowIndex as short, spans as (length as short, offset as short)[])[], columnCount as short, rowCount as short, spans as (length as short, offset as short)[])[]), createdDateTime as timestamp, lastUpdatedDateTime as timestamp, status as string),",
+				"          headers as ({Content-Length} as integer, {Content-Type} as string, Date as string, {Strict-Transport-Security} as string, {apim-request-id} as string, {x-content-type-options} as string, {x-envoy-upstream-service-time} as short, {x-ms-region} as string)",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'json',",
+				"     fileSystem: 'pdfextraction',",
+				"     folderPath: 'Stage/PDF_Order',",
+				"     fileName: 'jsonv3.0.json',",
+				"     documentForm: 'singleDocument',",
+				"     partitionBy('hash', 1)) ~> source1",
+				"source1 foldDown(unroll(body.analyzeResult.tables),",
+				"     mapColumn(",
+				"          cells = body.analyzeResult.tables.cells,",
+				"          columns = body.analyzeResult.tables.columnCount,",
+				"          rows = body.analyzeResult.tables.rowCount",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"derivedColumn1 aggregate(groupBy(TabNum = tablenumber,",
+				"          isHeader,",
+				"          rowIndex),",
+				"     text = replace(trim(trim(toString(collect(content)), '['),']'),'\"',''),",
+				"     partitionBy('hash', 1)) ~> aggregate1",
+				"surrogateKey1 foldDown(unroll(cells),",
+				"     mapColumn(",
+				"          tablenumber = page,",
+				"          columnIndex = cells.columnIndex,",
+				"          isHeader = cells.kind,",
+				"          rowIndex = cells.rowIndex,",
+				"          content = cells.content",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten2",
+				"flatten1 filter(not(isNull(cells)),",
+				"     partitionBy('hash', 1)) ~> filter1",
+				"source1 foldDown(unroll(body.analyzeResult.keyValuePairs),",
+				"     mapColumn(",
+				"          Key = body.analyzeResult.keyValuePairs.key.content,",
+				"          Value = body.analyzeResult.keyValuePairs.value.content",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten3",
+				"flatten3 filter(Key=='Kontrakt'||",
+				"Key=='Anlieferung'||",
+				"Key=='Datum') ~> filter2",
+				"filter1 keyGenerate(output(page as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L,",
+				"     partitionBy('hash', 1)) ~> surrogateKey1",
+				"filter3 select(mapColumn(",
+				"          text",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"aggregate1 sort(asc(rowIndex, true),",
+				"     partitionBy('hash', 1)) ~> sort1",
+				"flatten2 derive(content = concat(\"'\",content,\"'\")) ~> derivedColumn1",
+				"filter2 aggregate(groupBy(Key,",
+				"          Value),",
+				"     count = count(Key),",
+				"     partitionBy('hash', 1)) ~> aggregate2",
+				"aggregate2 select(mapColumn(",
+				"          Key,",
+				"          Value",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 pivot(pivotBy(Key),",
+				"     {} = first(Value),",
+				"     columnNaming: '$N$V',",
+				"     lateral: true) ~> pivot1",
+				"sort1 filter(not((TabNum!=1)&&rowIndex==0)) ~> filter3",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'pdfextraction',",
+				"     folderPath: 'Processed/PDF_Order/StageforTableAndKeyValues',",
+				"     rowDelimiter: '',",
+				"     columnDelimiter: '',",
+				"     escapeChar: '',",
+				"     quoteChar: '',",
+				"     columnNamesAsHeader: false,",
+				"     partitionFileNames:['Table.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          text",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink1",
+				"pivot1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'pdfextraction',",
+				"     folderPath: 'Processed/PDF_Order/StageforTableAndKeyValues',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     partitionFileNames:['keyvalues.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink2"
+			]
+		}
+	}
+}

@@ -1,0 +1,90 @@
+{
+	"name": "csvToSQLdb_Type21",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "LS_Triplea_adls",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_sql_a4ltriplea",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(output(",
+				"          Pos as short,",
+				"          Material as integer,",
+				"          Zielmenge as string,",
+				"          {Preis/Einh.} as string,",
+				"          Nettowert as string,",
+				"          Etikett as string,",
+				"          Format as string,",
+				"          Datum as string,",
+				"          Kontraktnummer as long,",
+				"          PageNumber as short",
+				"     ),",
+				"     useSchema: false,",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'processeda4lpdftocsv',",
+				"     folderPath: 'DMK GROUP',",
+				"     fileName: 'Table.csv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     multiLineRow: true) ~> source1",
+				"source1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          {Pos.} as string,",
+				"          Material as string,",
+				"          Zielmenge as string,",
+				"          {Preis/Einh.} as string,",
+				"          Nettowert as string,",
+				"          Etikett as string,",
+				"          Format as string,",
+				"          Kontraktnummer as string,",
+				"          Datum as string,",
+				"          PageNumber as string",
+				"     ),",
+				"     format: 'table',",
+				"     store: 'sqlserver',",
+				"     schemaName: 'dbo',",
+				"     tableName: 'Rahmenvertrag_DMK_GROUP',",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     deletable: false,",
+				"     upsertable: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          {Pos.} = Pos,",
+				"          Material,",
+				"          Zielmenge,",
+				"          {Preis/Einh.},",
+				"          Nettowert,",
+				"          Format,",
+				"          Kontraktnummer,",
+				"          Datum,",
+				"          PageNumber",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

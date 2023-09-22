@@ -1,0 +1,109 @@
+{
+	"name": "MergeAndLoadTocsv1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_maintable1",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_keyvaluepair1",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "ls_source_triplea",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Pos as string,",
+				"          Artikel as string,",
+				"          Bezeichnung as string,",
+				"          Termin as string,",
+				"          Menge as string,",
+				"          ME as string,",
+				"          Preis as string,",
+				"          {G-Wert EUR} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          Anlieferung as string,",
+				"          Datum as string,",
+				"          Kontrakt as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source2",
+				"source1 derive(lookupcolumn1 = 1,",
+				"     partitionBy('hash', 1)) ~> derivedColumn1",
+				"source2 derive(lookupcolumn2 = 1) ~> derivedColumn2",
+				"derivedColumn1, derivedColumn2 lookup(lookupcolumn1 == lookupcolumn2,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     partitionBy('hash', 1),",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 select(mapColumn(",
+				"          Pos,",
+				"          Artikel,",
+				"          Bezeichnung,",
+				"          Termin,",
+				"          Menge,",
+				"          ME,",
+				"          Preis,",
+				"          {G-Wert EUR},",
+				"          Anlieferung,",
+				"          Kontrakt,",
+				"          Datum",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delimited',",
+				"     fileSystem: 'pdfextraction',",
+				"     folderPath: 'Processed/PDF_Order/Finalcsv',",
+				"     columnDelimiter: ',',",
+				"     escapeChar: '\\\\',",
+				"     quoteChar: '\\\"',",
+				"     columnNamesAsHeader: true,",
+				"     partitionFileNames:['Table.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

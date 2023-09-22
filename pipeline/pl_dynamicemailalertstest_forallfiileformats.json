@@ -1,0 +1,111 @@
+{
+	"name": "pl_dynamicemailalertstest_forallfiileformats",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Metadata1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Metadata1').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Web1",
+							"type": "WebActivity",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://prod-17.eastus.logic.azure.com:443/workflows/47a7979e35b946ce9ef8be69cb0c912e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Yhf-YLUbiE4RcAx_8Uw-4P1Eaodwhv9vUjUO0Ib3mbw",
+								"method": "POST",
+								"body": {
+									"value": "{\n\"PipelineRunID\":\"@{pipeline().RunId}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"FileName\":\"@{item().name}\",\n\"FileSystem\":\"@{pipeline().parameters.Filesystem}\",\n\"Folderpath\":\"@{pipeline().parameters.Folderpath}\",\n\"Emailbody\":\"@{pipeline().parameters.Emailbody}\",\n\"SourcePdfFileName\":\"@{pipeline().parameters.SourcePdfFileName}\",\n\"Sourcepdfpath\":\"@{pipeline().parameters.Sourcepdfpath}\"\n}",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Metadata1",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_dataset_for_sourcefolder_files",
+						"type": "DatasetReference",
+						"parameters": {
+							"Folderpath": {
+								"value": "@pipeline().parameters.Folderpath",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Filesystem": {
+				"type": "string",
+				"defaultValue": "sourceforrejectedfiles"
+			},
+			"Folderpath": {
+				"type": "string",
+				"defaultValue": "Customer1/2023/May/RejectionsLevel1"
+			},
+			"Emailbody": {
+				"type": "String",
+				"defaultValue": "errorfile"
+			},
+			"SourcePdfFileName": {
+				"type": "string",
+				"defaultValue": "FMCCustomer.pdf"
+			},
+			"Sourcepdfpath": {
+				"type": "string",
+				"defaultValue": "Customer1/2023/May"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-29T10:02:13Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

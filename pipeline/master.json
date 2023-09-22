@@ -1,0 +1,139 @@
+{
+	"name": "master",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup into Control Table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select * from [dbo].[Control_table_TripleA]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_sql_Triplea",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup into Control Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup into Control Table').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Get Metadata1",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "Json2",
+									"type": "DatasetReference",
+									"parameters": {
+										"Customerfolder": {
+											"value": "@concat(item().Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf')\n\n",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"childItems"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Execute Pipeline1",
+							"type": "ExecutePipeline",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "child",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"getmetadatoutput": {
+										"value": "@activity('Get Metadata1').output.childItems",
+										"type": "Expression"
+									},
+									"Customerfolder": {
+										"value": "@item().Customername",
+										"type": "Expression"
+									},
+									"Pdfmapping": {
+										"value": "@item().pdf_mapping",
+										"type": "Expression"
+									},
+									"FormRecognizerURL": {
+										"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+										"type": "Expression"
+									},
+									"FormRecognizerKey": {
+										"value": "0987f7cf06fe4ff0a5f07ffaeb35986f",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "Pipeline _PDF_dynamic"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-28T10:46:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

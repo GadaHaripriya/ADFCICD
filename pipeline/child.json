@@ -1,0 +1,290 @@
+{
+	"name": "child",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.getmetadatoutput",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "stage",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"value": "@json(pipeline().parameters.Pdfmapping)",
+									"type": "Expression"
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "Json1",
+									"type": "DatasetReference",
+									"parameters": {
+										"Customerfolder": {
+											"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')",
+											"type": "Expression"
+										},
+										"filename": {
+											"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DelimitedText1",
+									"type": "DatasetReference",
+									"parameters": {
+										"Customerfolder": {
+											"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+											"type": "Expression"
+										},
+										"Filename": {
+											"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.csv')\n\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "blobpath",
+								"value": {
+									"value": "@concat('/rawtriplea/',pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf/',item().name)",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "WebActivity for dynamic SAS URL generation",
+							"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
+								"method": "POST",
+								"body": {
+									"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Form Recognizer - POST",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "WebActivity for dynamic SAS URL generation",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@pipeline().parameters.FormRecognizerURL",
+									"type": "Expression"
+								},
+								"method": "POST",
+								"headers": {
+									"Ocp-Apim-Subscription-Key": {
+										"value": "@pipeline().parameters.FormRecognizerKey",
+										"type": "Expression"
+									},
+									"contet-type": "application/pdf"
+								},
+								"body": {
+									"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Wait1",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "Form Recognizer - POST",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 20
+							}
+						},
+						{
+							"name": "stage",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [
+								{
+									"activity": "Wait1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "cloned_sequential_stagejsonDataflow2_copy2",
+									"type": "DataFlowReference",
+									"parameters": {
+										"Key": {
+											"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+											"type": "Expression"
+										},
+										"JSON_FILENAME": {
+											"value": "'@{concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n}'",
+											"type": "Expression"
+										},
+										"folderpath": {
+											"value": "'@{concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"source1": {
+											"url": {
+												"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								},
+								"traceLevel": "None",
+								"cacheSinks": {
+									"firstRowOnly": true
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"getmetadatoutput": {
+				"type": "array"
+			},
+			"Customerfolder": {
+				"type": "string"
+			},
+			"Pdfmapping": {
+				"type": "string"
+			},
+			"FormRecognizerURL": {
+				"type": "string"
+			},
+			"FormRecognizerKey": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"URL": {
+				"type": "String"
+			},
+			"blobpath": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Pipeline _PDF_dynamic"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-28T10:46:50Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

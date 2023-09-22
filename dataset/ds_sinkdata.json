@@ -1,0 +1,19 @@
+{
+	"name": "ds_sinkdata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sinktriplea",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "Customer1/2023/May/RejectionsLevel1",
+				"fileSystem": "sourceforrejectedfiles"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,9 @@
+{
+	"name": "a4ltriplea",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "1a7b6b71-a038-420b-8973-2bb425d90529",
+		"tenantId": "865cc515-a530-4538-8ef8-072b7b2be759"
+	}
+}

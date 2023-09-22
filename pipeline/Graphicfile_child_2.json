@@ -1,0 +1,207 @@
+{
+	"name": "Graphicfile_child_2",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach1_copy1",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.lookupoutput",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Get Metadata1_copy1",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Set variable1_copy1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_c1_order_graphicfile",
+									"type": "DatasetReference",
+									"parameters": {
+										"graphicfilename": {
+											"value": "@variables('Graphicfilename')",
+											"type": "Expression"
+										},
+										"GraphicFilepath": {
+											"value": "@concat(pipeline().parameters.Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/')",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "If Condition1_copy1",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Get Metadata1_copy1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@activity('Get Metadata1_copy1').output.exists",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "Stored procedure2",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[Graphicfile_doesnotexists]",
+											"storedProcedureParameters": {
+												"Article": {
+													"value": {
+														"value": "@item().Artikel",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Customername": {
+													"value": {
+														"value": "@pipeline().parameters.Customername",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_sql_a4ltriplea",
+											"type": "LinkedServiceReference"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "Stored procedure1",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[Graphicfile_exists]",
+											"storedProcedureParameters": {
+												"Article": {
+													"value": {
+														"value": "@item().Artikel",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Customername": {
+													"value": {
+														"value": "@pipeline().parameters.Customername",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Graphicfilepath": {
+													"value": {
+														"value": "@concat('graphicfiles','/',pipeline().parameters.Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/',concat(item().Artikel,'_',pipeline().parameters.Customername,'.pdf'))",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_sql_a4ltriplea",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "Set variable1_copy1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Graphicfilename",
+								"value": {
+									"value": "@concat(item().Artikel,'_',pipeline().parameters.Customername,'.pdf')",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Customername": {
+				"type": "string"
+			},
+			"lookupoutput": {
+				"type": "object"
+			}
+		},
+		"variables": {
+			"Graphicfilename": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Graphicfile"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-06-01T11:46:23Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

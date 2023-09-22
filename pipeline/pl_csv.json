@@ -1,0 +1,108 @@
+{
+	"name": "pl_csv",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"modifiedDatetimeStart": "2023-05-28T00:00:00Z",
+							"wildcardFolderPath": {
+								"value": "@pipeline().parameters.source_folder",
+								"type": "Expression"
+							},
+							"wildcardFileName": "*",
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_raw_triplea",
+						"type": "DatasetReference",
+						"parameters": {
+							"source_folder": {
+								"value": "@pipeline().parameters.source_folder",
+								"type": "Expression"
+							},
+							"filetype": {
+								"value": "@pipeline().parameters.Filetype",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference",
+						"parameters": {
+							"Customerfolder": {
+								"value": "@concat(pipeline().parameters.source_folder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+								"type": "Expression"
+							},
+							"Filename": {
+								"value": "@concat(substring(pipeline().parameters.Filename,0,sub(length(pipeline().parameters.Filename),4)),'.csv')\n",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"source_folder": {
+				"type": "String"
+			},
+			"Filetype": {
+				"type": "String"
+			},
+			"Filename": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "soure_raw_prestage(csv,pdf)"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-29T05:35:02Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

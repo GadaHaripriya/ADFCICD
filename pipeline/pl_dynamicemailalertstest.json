@@ -1,0 +1,113 @@
+{
+	"name": "pl_dynamicemailalertstest",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data1",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_sourcedata",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_sinkdataset",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Copy data1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-17.eastus.logic.azure.com:443/workflows/47a7979e35b946ce9ef8be69cb0c912e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Yhf-YLUbiE4RcAx_8Uw-4P1Eaodwhv9vUjUO0Ib3mbw",
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"body": {
+						"value": "{\n\"PipelineRunID\":\"@{pipeline().RunId}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"FileSystem\":\"@{pipeline().parameters.Filesystem}\",\n\"Folderpath\":\"@{pipeline().parameters.Folderpath}\",\n\"Emailbody\":\"@{pipeline().parameters.Emailbody}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"Filesystem": {
+				"type": "string",
+				"defaultValue": "sourceforrejectedfiles"
+			},
+			"Folderpath": {
+				"type": "string",
+				"defaultValue": "Customer1/2023/May/RejectionsLevel1"
+			},
+			"Emailbody": {
+				"type": "String",
+				"defaultValue": "errorfile"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-26T12:38:37Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

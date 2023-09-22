@@ -1,0 +1,27 @@
+{
+	"name": "ds_dataset_for_sourcefolder_files",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sourceforrejectedfiles",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Folderpath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().Folderpath",
+					"type": "Expression"
+				},
+				"fileSystem": "sourceforrejectedfiles"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,355 @@
+{
+	"name": "pl_childpipeline_source_raw",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach file",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@array(pipeline().parameters.childitems)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Switch1",
+							"description": "check the file type and switch and copy the data from source to raw accordingly",
+							"type": "Switch",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@if(\n contains(string(item().name),'csv'),\n'csv',\nif(\n    contains(string(item().name),'pdf'),\n    'pdf',\n    'xml'\n    )\n  )",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "csv",
+										"activities": [
+											{
+												"name": "Copy csv file",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"modifiedDatetimeStart": {
+																"value": "@addhours(string(utcnow()),-3)",
+																"type": "Expression"
+															},
+															"modifiedDatetimeEnd": {
+																"value": "@utcnow()",
+																"type": "Expression"
+															},
+															"wildcardFolderPath": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"wildcardFileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_source_triplea_adls",
+														"type": "DatasetReference",
+														"parameters": {
+															"foldername": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_raw_triplea",
+														"type": "DatasetReference",
+														"parameters": {
+															"source_folder": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"filetype": "csv"
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "pdf",
+										"activities": [
+											{
+												"name": "Copy data pdf",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"modifiedDatetimeStart": {
+																"value": "@addhours(string(utcnow()),-3)",
+																"type": "Expression"
+															},
+															"modifiedDatetimeEnd": {
+																"value": "@utcnow()",
+																"type": "Expression"
+															},
+															"wildcardFolderPath": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"wildcardFileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_source_triplea_adls",
+														"type": "DatasetReference",
+														"parameters": {
+															"foldername": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_raw_triplea",
+														"type": "DatasetReference",
+														"parameters": {
+															"source_folder": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"filetype": "pdf"
+														}
+													}
+												]
+											}
+										]
+									},
+									{
+										"value": "xml",
+										"activities": [
+											{
+												"name": "Copy data xml",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"modifiedDatetimeStart": {
+																"value": "@addhours(string(utcnow()),-3)",
+																"type": "Expression"
+															},
+															"modifiedDatetimeEnd": {
+																"value": "@utcnow()",
+																"type": "Expression"
+															},
+															"wildcardFolderPath": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"wildcardFileName": {
+																"value": "@item().name",
+																"type": "Expression"
+															},
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "ds_source_triplea_adls",
+														"type": "DatasetReference",
+														"parameters": {
+															"foldername": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															}
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "ds_raw_triplea",
+														"type": "DatasetReference",
+														"parameters": {
+															"source_folder": {
+																"value": "@pipeline().parameters.source_folder_name",
+																"type": "Expression"
+															},
+															"filetype": "xml"
+														}
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "filename",
+								"value": {
+									"value": "@item().name",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"childitems": {
+				"type": "string"
+			},
+			"source_folder_name": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"filename": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Pipeline_source_to_raw"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-05-28T10:46:15Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
