@@ -1,0 +1,3489 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "a4ltriplea"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage1'"
+		},
+		"AzureDataLakeStorage2_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage2'"
+		},
+		"LS_Triplea_adls_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_Triplea_adls'"
+		},
+		"ls_SqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_SqlServer'"
+		},
+		"ls_sinktriplea_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sinktriplea'"
+		},
+		"ls_source_triplea_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_source_triplea'"
+		},
+		"ls_sourcedatapdf_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sourcedatapdf'"
+		},
+		"ls_sourcefilenames_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sourcefilenames'"
+		},
+		"ls_sourcefiles_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sourcefiles'"
+		},
+		"ls_sourcefolder_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sourcefolder'"
+		},
+		"ls_sourceforrejectedfiles_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_sourceforrejectedfiles'"
+		},
+		"ls_sql_a4ltriplea_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ls_sql_a4ltriplea'"
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"LS_Triplea_adls_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://https://tripleaformrecog.cognitiveservices.azure.com//formrecognizer/documentModels/FMCMODEL?api-version=2022-08-31"
+		},
+		"RestService2_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().url}"
+		},
+		"ls_sinktriplea_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_source_triplea_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "@{linkedService().URL}"
+		},
+		"ls_sourcedatapdf_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefilenames_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefiles_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefolder_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline4')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "WebDestination",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://formrecogdestination.cognitiveservices.azure.com/formrecognizer/documentModels:authorizeCopy?api-version=2023-07-31",
+							"method": "POST",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": "5a17bb41892344b9a77a9aeca39257b9"
+							},
+							"body": {
+								"modelId": "Test_Dest13",
+								"description": "Copied from SCUS"
+							}
+						}
+					},
+					{
+						"name": "WebSource",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "WebDestination",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://testformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/TestFMC1:copyTo?api-version=2023-07-31",
+							"method": "POST",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": "1c29a8971d8342ea946d80520bf52e78"
+							},
+							"body": {
+								"value": "{\n\t\"targetResourceId\": \"@{activity('WebDestination').output.targetResourceId}\",\n\t\"targetResourceRegion\": \"@{activity('WebDestination').output.targetResourceRegion}\",\n\t\"targetModelId\": \"@{activity('WebDestination').output.targetModelId}\",\n\t\"targetModelLocation\": \"@{activity('WebDestination').output.targetModelLocation}\",\n\t\"accessToken\": \"@{activity('WebDestination').output.accessToken}\",\n\t\"expirationDateTime\": \"@{activity('WebDestination').output.expirationDateTime}\"\n  }\n\t",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-09-01T08:47:00Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage1_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureDataLakeStorage2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('AzureDataLakeStorage2_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('AzureDataLakeStorage2_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_Triplea_adls')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_Triplea_adls_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_Triplea_adls_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestService1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('RestService1_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestService2')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"url": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "RestService",
+				"typeProperties": {
+					"url": "[parameters('RestService2_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_SqlServer')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_SqlServer_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sinktriplea')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sinktriplea_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sinktriplea_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_source_triplea')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"URL": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_source_triplea_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_source_triplea_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sourcedatapdf')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sourcedatapdf_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sourcedatapdf_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sourcefilenames')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sourcefilenames_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sourcefilenames_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sourcefiles')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sourcefiles_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sourcefiles_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sourcefolder')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sourcefolder_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sourcefolder_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sourceforrejectedfiles')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_sourceforrejectedfiles_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_sourceforrejectedfiles_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_sql_a4ltriplea')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ls_sql_a4ltriplea_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DelimitedText1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage2",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Customerfolder": {
+						"type": "String"
+					},
+					"Filename": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().Filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Customerfolder",
+							"type": "Expression"
+						},
+						"fileSystem": "prestagetriplea"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Json1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureDataLakeStorage2",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Customerfolder": {
+						"type": "String"
+					},
+					"filename": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().filename",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().Customerfolder",
+							"type": "Expression"
+						},
+						"fileSystem": "prestagetriplea"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"body": {
+							"type": "object",
+							"properties": {
+								"analyzeResult": {
+									"type": "object",
+									"properties": {
+										"apiVersion": {
+											"type": "string"
+										},
+										"content": {
+											"type": "string"
+										},
+										"documents": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"boundingRegions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"pageNumber": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"confidence": {
+														"type": "string"
+													},
+													"docType": {
+														"type": "string"
+													},
+													"fields": {
+														"type": "object",
+														"properties": {
+															"Billing Information": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Contact Person": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Customer name": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Email": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"FMC_table": {
+																"type": "object",
+																"properties": {
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueArray": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"confidence": {
+																					"type": "string"
+																				},
+																				"type": {
+																					"type": "string"
+																				},
+																				"valueObject": {
+																					"type": "object",
+																					"properties": {
+																						"Delivery Date": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Item": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Material Number / Description": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Net Amount": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Qty": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"UOM": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Unit Price/ Cur": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															},
+															"Information Email": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Information- Date": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Information- Terms of Payment": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Purchase Order": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Ship To/ Delivery Address": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Sub Total": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Total Amount": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Address": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Name": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Number": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Telephone": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor VAT Number": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													}
+												}
+											}
+										},
+										"modelId": {
+											"type": "string"
+										},
+										"pages": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"angle": {
+														"type": "string"
+													},
+													"height": {
+														"type": "string"
+													},
+													"kind": {
+														"type": "string"
+													},
+													"lines": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"content": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																},
+																"spans": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"length": {
+																				"type": "string"
+																			},
+																			"offset": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"pageNumber": {
+														"type": "string"
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													},
+													"unit": {
+														"type": "string"
+													},
+													"width": {
+														"type": "string"
+													},
+													"words": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"confidence": {
+																	"type": "string"
+																},
+																"content": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																},
+																"span": {
+																	"type": "object",
+																	"properties": {
+																		"length": {
+																			"type": "string"
+																		},
+																		"offset": {
+																			"type": "string"
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										},
+										"stringIndexType": {
+											"type": "string"
+										},
+										"styles": {
+											"type": "array"
+										},
+										"tables": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"boundingRegions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"pageNumber": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"cells": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"boundingRegions": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"pageNumber": {
+																				"type": "string"
+																			},
+																			"polygon": {
+																				"type": "array",
+																				"items": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	}
+																},
+																"columnIndex": {
+																	"type": "string"
+																},
+																"content": {
+																	"type": "string"
+																},
+																"kind": {
+																	"type": "string"
+																},
+																"rowIndex": {
+																	"type": "string"
+																},
+																"spans": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"length": {
+																				"type": "string"
+																			},
+																			"offset": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"columnCount": {
+														"type": "string"
+													},
+													"rowCount": {
+														"type": "string"
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								},
+								"createdDateTime": {
+									"type": "string"
+								},
+								"lastUpdatedDateTime": {
+									"type": "string"
+								},
+								"status": {
+									"type": "string"
+								}
+							}
+						},
+						"headers": {
+							"type": "object",
+							"properties": {
+								"Strict-Transport-Security": {
+									"type": "string"
+								},
+								"apim-request-id": {
+									"type": "string"
+								},
+								"x-envoy-upstream-service-time": {
+									"type": "string"
+								},
+								"Content-Length": {
+									"type": "string"
+								},
+								"Content-Type": {
+									"type": "string"
+								},
+								"Date": {
+									"type": "string"
+								},
+								"x-ms-region": {
+									"type": "string"
+								},
+								"x-content-type-options": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureDataLakeStorage2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Json2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_sourcefiles",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"Customerfolder": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().Customerfolder",
+							"type": "Expression"
+						},
+						"fileSystem": "rawtriplea"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"body": {
+							"type": "object",
+							"properties": {
+								"analyzeResult": {
+									"type": "object",
+									"properties": {
+										"apiVersion": {
+											"type": "string"
+										},
+										"content": {
+											"type": "string"
+										},
+										"documents": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"boundingRegions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"pageNumber": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"confidence": {
+														"type": "string"
+													},
+													"docType": {
+														"type": "string"
+													},
+													"fields": {
+														"type": "object",
+														"properties": {
+															"Billing Information": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Contact Person": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Customer name": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Email": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"FMC_table": {
+																"type": "object",
+																"properties": {
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueArray": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"confidence": {
+																					"type": "string"
+																				},
+																				"type": {
+																					"type": "string"
+																				},
+																				"valueObject": {
+																					"type": "object",
+																					"properties": {
+																						"Delivery Date": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Item": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Material Number / Description": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Net Amount": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Qty": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"UOM": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						},
+																						"Unit Price/ Cur": {
+																							"type": "object",
+																							"properties": {
+																								"boundingRegions": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"pageNumber": {
+																												"type": "string"
+																											},
+																											"polygon": {
+																												"type": "array",
+																												"items": {
+																													"type": "string"
+																												}
+																											}
+																										}
+																									}
+																								},
+																								"confidence": {
+																									"type": "string"
+																								},
+																								"content": {
+																									"type": "string"
+																								},
+																								"spans": {
+																									"type": "array",
+																									"items": {
+																										"type": "object",
+																										"properties": {
+																											"length": {
+																												"type": "string"
+																											},
+																											"offset": {
+																												"type": "string"
+																											}
+																										}
+																									}
+																								},
+																								"type": {
+																									"type": "string"
+																								},
+																								"valueString": {
+																									"type": "string"
+																								}
+																							}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																}
+															},
+															"Information Email": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Information- Date": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Information- Terms of Payment": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Purchase Order": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Ship To/ Delivery Address": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Sub Total": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Total Amount": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Address": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Name": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Number": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor Telephone": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															},
+															"Vendor VAT Number": {
+																"type": "object",
+																"properties": {
+																	"boundingRegions": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"pageNumber": {
+																					"type": "string"
+																				},
+																				"polygon": {
+																					"type": "array",
+																					"items": {
+																						"type": "string"
+																					}
+																				}
+																			}
+																		}
+																	},
+																	"confidence": {
+																		"type": "string"
+																	},
+																	"content": {
+																		"type": "string"
+																	},
+																	"spans": {
+																		"type": "array",
+																		"items": {
+																			"type": "object",
+																			"properties": {
+																				"length": {
+																					"type": "string"
+																				},
+																				"offset": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	},
+																	"type": {
+																		"type": "string"
+																	},
+																	"valueString": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													}
+												}
+											}
+										},
+										"modelId": {
+											"type": "string"
+										},
+										"pages": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"angle": {
+														"type": "string"
+													},
+													"height": {
+														"type": "string"
+													},
+													"kind": {
+														"type": "string"
+													},
+													"lines": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"content": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																},
+																"spans": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"length": {
+																				"type": "string"
+																			},
+																			"offset": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"pageNumber": {
+														"type": "string"
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													},
+													"unit": {
+														"type": "string"
+													},
+													"width": {
+														"type": "string"
+													},
+													"words": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"confidence": {
+																	"type": "string"
+																},
+																"content": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																},
+																"span": {
+																	"type": "object",
+																	"properties": {
+																		"length": {
+																			"type": "string"
+																		},
+																		"offset": {
+																			"type": "string"
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										},
+										"stringIndexType": {
+											"type": "string"
+										},
+										"styles": {
+											"type": "array"
+										},
+										"tables": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"boundingRegions": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"pageNumber": {
+																	"type": "string"
+																},
+																"polygon": {
+																	"type": "array",
+																	"items": {
+																		"type": "string"
+																	}
+																}
+															}
+														}
+													},
+													"cells": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"boundingRegions": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"pageNumber": {
+																				"type": "string"
+																			},
+																			"polygon": {
+																				"type": "array",
+																				"items": {
+																					"type": "string"
+																				}
+																			}
+																		}
+																	}
+																},
+																"columnIndex": {
+																	"type": "string"
+																},
+																"content": {
+																	"type": "string"
+																},
+																"kind": {
+																	"type": "string"
+																},
+																"rowIndex": {
+																	"type": "string"
+																},
+																"spans": {
+																	"type": "array",
+																	"items": {
+																		"type": "object",
+																		"properties": {
+																			"length": {
+																				"type": "string"
+																			},
+																			"offset": {
+																				"type": "string"
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													},
+													"columnCount": {
+														"type": "string"
+													},
+													"rowCount": {
+														"type": "string"
+													},
+													"spans": {
+														"type": "array",
+														"items": {
+															"type": "object",
+															"properties": {
+																"length": {
+																	"type": "string"
+																},
+																"offset": {
+																	"type": "string"
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								},
+								"createdDateTime": {
+									"type": "string"
+								},
+								"lastUpdatedDateTime": {
+									"type": "string"
+								},
+								"status": {
+									"type": "string"
+								}
+							}
+						},
+						"headers": {
+							"type": "object",
+							"properties": {
+								"Strict-Transport-Security": {
+									"type": "string"
+								},
+								"apim-request-id": {
+									"type": "string"
+								},
+								"x-envoy-upstream-service-time": {
+									"type": "string"
+								},
+								"Content-Length": {
+									"type": "string"
+								},
+								"Content-Type": {
+									"type": "string"
+								},
+								"Date": {
+									"type": "string"
+								},
+								"x-ms-region": {
+									"type": "string"
+								},
+								"x-content-type-options": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_sourcefiles')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestResource1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "RestService2",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"url": {
+							"value": "@dataset().url",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"url": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/RestService2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RestResource12')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "RestService2",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"url": {
+							"value": "@dataset().url",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"url": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "RestResource",
+				"typeProperties": {},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/RestService2')]"
+			]
+		}
+	]
+}

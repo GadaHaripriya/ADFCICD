@@ -1,0 +1,851 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "a4ltriplea"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Graphicfile_master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup into control table",
+						"description": "Look up into control table for customer name",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup into control table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup into control table').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of each customer folder",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DelimitedText1",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(item().Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+													"type": "Expression"
+												},
+												"Filename": "*"
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of each customer folder",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "graphicfile_child_1",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"Childitems": {
+												"value": "@activity('Get Metadata of each customer folder').output.childItems",
+												"type": "Expression"
+											},
+											"Customername": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Graphicfile"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-30T18:54:57Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup into Control Table",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from [dbo].[Control_table_TripleA]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup into Control Table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup into Control Table').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "Json2",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(item().Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf')\n\n",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "JsonReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "child",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"getmetadatoutput": {
+												"value": "@activity('Get Metadata1').output.childItems",
+												"type": "Expression"
+											},
+											"Customerfolder": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											},
+											"Pdfmapping": {
+												"value": "@item().pdf_mapping",
+												"type": "Expression"
+											},
+											"FormRecognizerURL": {
+												"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+												"type": "Expression"
+											},
+											"FormRecognizerKey": {
+												"value": "0987f7cf06fe4ff0a5f07ffaeb35986f",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Pipeline _PDF_dynamic"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:50Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/child_source_raw_prestage')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach file",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@array(pipeline().parameters.childitems)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Switch1",
+									"description": "check the file type and switch and copy the data from source to raw accordingly",
+									"type": "Switch",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@if(\n contains(string(item().name),'csv'),\n'csv',\nif(\n    contains(string(item().name),'pdf'),\n    'pdf',\n    'xml'\n    )\n  )",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "csv",
+												"activities": [
+													{
+														"name": "Copy csv file",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "csv"
+																}
+															}
+														]
+													},
+													{
+														"name": "Execute csv pipeline",
+														"description": "copy data from raw to pretstage",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "Copy csv file",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "pl_csv",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"source_folder": {
+																	"value": "@pipeline().parameters.source_folder_name",
+																	"type": "Expression"
+																},
+																"Filetype": "csv",
+																"Filename": {
+																	"value": "@item().name",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "pdf",
+												"activities": [
+													{
+														"name": "Copy data pdf",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "pdf"
+																}
+															}
+														]
+													},
+													{
+														"name": "Execute PDF Pipeline",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "Copy data pdf",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "master",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {}
+														}
+													}
+												]
+											},
+											{
+												"value": "xml",
+												"activities": [
+													{
+														"name": "Copy data xml",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "xml"
+																}
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "filename",
+										"value": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"childitems": {
+						"type": "string"
+					},
+					"source_folder_name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "soure_raw_prestage(csv,pdf)"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T12:30:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Master_source_raw_prestage')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup INTO CONTROLTABLE",
+						"description": " up into control table -Control_table_TripleA for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup INTO CONTROLTABLE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup INTO CONTROLTABLE').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of source",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_source_triplea_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"foldername": {
+													"value": "@item().Customername",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"itemName",
+											"childItems",
+											"lastModified"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of source",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "child_source_raw_prestage",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"childitems": {
+												"value": "@activity('Get Metadata of source').output.childItems",
+												"type": "Expression"
+											},
+											"source_folder_name": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "soure_raw_prestage(csv,pdf)"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T12:07:03Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/child_source_raw_prestage')]"
+			]
+		}
+	]
+}

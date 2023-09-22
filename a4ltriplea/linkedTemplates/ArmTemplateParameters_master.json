@@ -1,0 +1,87 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "a4ltriplea"
+		},
+		"AzureDataLakeStorage1_accountKey": {
+			"value": ""
+		},
+		"AzureDataLakeStorage2_accountKey": {
+			"value": ""
+		},
+		"LS_Triplea_adls_accountKey": {
+			"value": ""
+		},
+		"ls_SqlServer_connectionString": {
+			"value": ""
+		},
+		"ls_sinktriplea_accountKey": {
+			"value": ""
+		},
+		"ls_source_triplea_accountKey": {
+			"value": ""
+		},
+		"ls_sourcedatapdf_accountKey": {
+			"value": ""
+		},
+		"ls_sourcefilenames_accountKey": {
+			"value": ""
+		},
+		"ls_sourcefiles_accountKey": {
+			"value": ""
+		},
+		"ls_sourcefolder_accountKey": {
+			"value": ""
+		},
+		"ls_sourceforrejectedfiles_accountKey": {
+			"value": ""
+		},
+		"ls_sql_a4ltriplea_connectionString": {
+			"value": ""
+		},
+		"AzureDataLakeStorage1_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"AzureDataLakeStorage2_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"LS_Triplea_adls_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"RestService1_properties_typeProperties_url": {
+			"value": "https://https://tripleaformrecog.cognitiveservices.azure.com//formrecognizer/documentModels/FMCMODEL?api-version=2022-08-31"
+		},
+		"RestService2_properties_typeProperties_url": {
+			"value": "@{linkedService().url}"
+		},
+		"ls_sinktriplea_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_source_triplea_properties_typeProperties_url": {
+			"value": "@{linkedService().URL}"
+		},
+		"ls_sourcedatapdf_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefilenames_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefiles_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourcefolder_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}

@@ -1,0 +1,3384 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "a4ltriplea"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline3')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "ds_c1_order",
+								"type": "DatasetReference",
+								"parameters": {
+									"Filepath": "Customer1/2023/05/csv/Prestage_csvfiles",
+									"Filename": "c1order1.csv"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup1').output.value",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_c1_order_graphicfile",
+											"type": "DatasetReference",
+											"parameters": {
+												"graphicfilename": {
+													"value": "@variables('filepath')",
+													"type": "Expression"
+												},
+												"GraphicFilepath": {
+													"value": "@concat('Customer1','/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/')",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "If Condition1",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@activity('Get Metadata1').output.exists",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "filepath",
+										"value": {
+											"value": "@concat(item().Artikel,'_',item().Customername,'.pdf')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"filepath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Graphicfile"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-06-01T11:46:23Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_childpipeline_source_raw')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach file",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@array(pipeline().parameters.childitems)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Switch1",
+									"description": "check the file type and switch and copy the data from source to raw accordingly",
+									"type": "Switch",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@if(\n contains(string(item().name),'csv'),\n'csv',\nif(\n    contains(string(item().name),'pdf'),\n    'pdf',\n    'xml'\n    )\n  )",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "csv",
+												"activities": [
+													{
+														"name": "Copy csv file",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "csv"
+																}
+															}
+														]
+													}
+												]
+											},
+											{
+												"value": "pdf",
+												"activities": [
+													{
+														"name": "Copy data pdf",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "pdf"
+																}
+															}
+														]
+													}
+												]
+											},
+											{
+												"value": "xml",
+												"activities": [
+													{
+														"name": "Copy data xml",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "xml"
+																}
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "filename",
+										"value": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"childitems": {
+						"type": "string"
+					},
+					"source_folder_name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pipeline_source_to_raw"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:15Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_csv')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": "2023-05-28T00:00:00Z",
+									"wildcardFolderPath": {
+										"value": "@pipeline().parameters.source_folder",
+										"type": "Expression"
+									},
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_raw_triplea",
+								"type": "DatasetReference",
+								"parameters": {
+									"source_folder": {
+										"value": "@pipeline().parameters.source_folder",
+										"type": "Expression"
+									},
+									"filetype": {
+										"value": "@pipeline().parameters.Filetype",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference",
+								"parameters": {
+									"Customerfolder": {
+										"value": "@concat(pipeline().parameters.source_folder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+										"type": "Expression"
+									},
+									"Filename": {
+										"value": "@concat(substring(pipeline().parameters.Filename,0,sub(length(pipeline().parameters.Filename),4)),'.csv')\n",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"source_folder": {
+						"type": "String"
+					},
+					"Filetype": {
+						"type": "String"
+					},
+					"Filename": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "soure_raw_prestage(csv,pdf)"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-29T05:35:02Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_dynamicemailalertstest')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_sourcedata",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_sinkdataset",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "Web1",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Copy data1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://prod-17.eastus.logic.azure.com:443/workflows/47a7979e35b946ce9ef8be69cb0c912e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Yhf-YLUbiE4RcAx_8Uw-4P1Eaodwhv9vUjUO0Ib3mbw",
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/json"
+							},
+							"body": {
+								"value": "{\n\"PipelineRunID\":\"@{pipeline().RunId}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"FileSystem\":\"@{pipeline().parameters.Filesystem}\",\n\"Folderpath\":\"@{pipeline().parameters.Folderpath}\",\n\"Emailbody\":\"@{pipeline().parameters.Emailbody}\"\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Filesystem": {
+						"type": "string",
+						"defaultValue": "sourceforrejectedfiles"
+					},
+					"Folderpath": {
+						"type": "string",
+						"defaultValue": "Customer1/2023/May/RejectionsLevel1"
+					},
+					"Emailbody": {
+						"type": "String",
+						"defaultValue": "errorfile"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-26T12:38:37Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_dynamicemailalertstest_forallfiileformats')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Metadata1').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Web1",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": "https://prod-17.eastus.logic.azure.com:443/workflows/47a7979e35b946ce9ef8be69cb0c912e/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Yhf-YLUbiE4RcAx_8Uw-4P1Eaodwhv9vUjUO0Ib3mbw",
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{\n\"PipelineRunID\":\"@{pipeline().RunId}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"FileName\":\"@{item().name}\",\n\"FileSystem\":\"@{pipeline().parameters.Filesystem}\",\n\"Folderpath\":\"@{pipeline().parameters.Folderpath}\",\n\"Emailbody\":\"@{pipeline().parameters.Emailbody}\",\n\"SourcePdfFileName\":\"@{pipeline().parameters.SourcePdfFileName}\",\n\"Sourcepdfpath\":\"@{pipeline().parameters.Sourcepdfpath}\"\n}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_dataset_for_sourcefolder_files",
+								"type": "DatasetReference",
+								"parameters": {
+									"Folderpath": {
+										"value": "@pipeline().parameters.Folderpath",
+										"type": "Expression"
+									}
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Filesystem": {
+						"type": "string",
+						"defaultValue": "sourceforrejectedfiles"
+					},
+					"Folderpath": {
+						"type": "string",
+						"defaultValue": "Customer1/2023/May/RejectionsLevel1"
+					},
+					"Emailbody": {
+						"type": "String",
+						"defaultValue": "errorfile"
+					},
+					"SourcePdfFileName": {
+						"type": "string",
+						"defaultValue": "FMCCustomer.pdf"
+					},
+					"Sourcepdfpath": {
+						"type": "string",
+						"defaultValue": "Customer1/2023/May"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-29T10:02:13Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MergeAndLoadTocsv')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_maintable",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_keyvaluepair",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "ls_source_triplea",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "derivedColumn2"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Pos as string,",
+						"          Artikel as string,",
+						"          Bezeichnung as string,",
+						"          Termin as string,",
+						"          Menge as string,",
+						"          ME as string,",
+						"          Preis as string,",
+						"          {G-Wert EUR} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          Anlieferung as string,",
+						"          Datum as string,",
+						"          Kontrakt as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source2",
+						"source1 derive(lookupcolumn1 = 1,",
+						"     partitionBy('hash', 1)) ~> derivedColumn1",
+						"source2 derive(lookupcolumn2 = 1) ~> derivedColumn2",
+						"derivedColumn1, derivedColumn2 lookup(lookupcolumn1 == lookupcolumn2,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'auto')~> lookup1",
+						"lookup1 select(mapColumn(",
+						"          Pos,",
+						"          Artikel,",
+						"          Bezeichnung,",
+						"          Termin,",
+						"          Menge,",
+						"          ME,",
+						"          Preis,",
+						"          {G-Wert EUR},",
+						"          Anlieferung,",
+						"          Kontrakt,",
+						"          Datum",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'pdfextraction',",
+						"     folderPath: 'Processed/PDF_Order/Finalcsv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     partitionFileNames:['Table.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MergeAndLoadTocsv1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_maintable1",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_keyvaluepair1",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "ls_source_triplea",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "derivedColumn2"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Pos as string,",
+						"          Artikel as string,",
+						"          Bezeichnung as string,",
+						"          Termin as string,",
+						"          Menge as string,",
+						"          ME as string,",
+						"          Preis as string,",
+						"          {G-Wert EUR} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          Anlieferung as string,",
+						"          Datum as string,",
+						"          Kontrakt as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source2",
+						"source1 derive(lookupcolumn1 = 1,",
+						"     partitionBy('hash', 1)) ~> derivedColumn1",
+						"source2 derive(lookupcolumn2 = 1) ~> derivedColumn2",
+						"derivedColumn1, derivedColumn2 lookup(lookupcolumn1 == lookupcolumn2,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'auto')~> lookup1",
+						"lookup1 select(mapColumn(",
+						"          Pos,",
+						"          Artikel,",
+						"          Bezeichnung,",
+						"          Termin,",
+						"          Menge,",
+						"          ME,",
+						"          Preis,",
+						"          {G-Wert EUR},",
+						"          Anlieferung,",
+						"          Kontrakt,",
+						"          Datum",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'pdfextraction',",
+						"     folderPath: 'Processed/PDF_Order/Finalcsv',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     partitionFileNames:['Table.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/cloned_sequential_stagejsonDataflow2_copy2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Sequential-sasurl_extract_pdf_to_csv"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "RestResource12",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"parameters{",
+						"     Key as string,",
+						"     JSON_FILENAME as string,",
+						"     folderpath as string",
+						"}",
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 60,",
+						"     requestInterval: 10,",
+						"     headers: ['Ocp-Apim-Subscription-Key' -> ($Key)],",
+						"     paginationRules: ['supportRFC5988' -> 'true'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'singleDocument']) ~> source1",
+						"source1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'json',",
+						"     fileSystem: 'prestagetriplea',",
+						"     folderPath: ($folderpath),",
+						"     partitionFileNames:[($JSON_FILENAME)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sequential_stagejsonDataflow2_copy1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"folder": {
+					"name": "Sequential-sasurl_extract_pdf_to_csv"
+				},
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "RestResource12",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"parameters{",
+						"     Key as string,",
+						"     JSON_FILENAME as string",
+						"}",
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 60,",
+						"     requestInterval: 10,",
+						"     headers: ['Ocp-Apim-Subscription-Key' -> ($Key)],",
+						"     paginationRules: ['supportRFC5988' -> 'true'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'singleDocument']) ~> source1",
+						"source1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'json',",
+						"     fileSystem: 'fmcpdf',",
+						"     folderPath: 'STAGE',",
+						"     partitionFileNames:[($JSON_FILENAME)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/stagejsonDataflow')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "RestResource1",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "ls_source_triplea",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"parameters{",
+						"     Key as string",
+						"}",
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 60,",
+						"     requestInterval: 10,",
+						"     headers: ['Ocp-Apim-Subscription-Key' -> ($Key)],",
+						"     paginationRules: ['supportRFC5988' -> 'true'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'singleDocument']) ~> source1",
+						"source1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'json',",
+						"     fileSystem: 'pdfextraction',",
+						"     folderPath: 'Stage/PDF_Order',",
+						"     partitionFileNames:['jsonv3.0.json'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/stagejsonDataflow2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "RestResource12",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"parameters{",
+						"     Key as string",
+						"}",
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 60,",
+						"     requestInterval: 10,",
+						"     headers: ['Ocp-Apim-Subscription-Key' -> ($Key)],",
+						"     paginationRules: ['supportRFC5988' -> 'true'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'singleDocument']) ~> source1",
+						"source1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'json',",
+						"     fileSystem: 'fmcpdf',",
+						"     folderPath: 'STAGE',",
+						"     partitionFileNames:['jsonv3.0.json'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/stagejsonDataflow311')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "RestResource1311",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [],
+					"scriptLines": [
+						"parameters{",
+						"     Key as string",
+						"}",
+						"source(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     httpMethod: 'GET',",
+						"     timeout: 137,",
+						"     requestInterval: 100,",
+						"     headers: ['Ocp-Apim-Subscription-Key' -> ($Key)],",
+						"     paginationRules: ['supportRFC5988' -> 'true'],",
+						"     responseFormat: ['type' -> 'json', 'documentForm' -> 'singleDocument']) ~> source1",
+						"source1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'json',",
+						"     fileSystem: 'stage',",
+						"     folderPath: 'DMK GROUP',",
+						"     partitionFileNames:['jsonv3.0.json'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Dynamic json to csv')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup1",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from [dbo].[Control_table_TripleA]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup1').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "Json2",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@item().Customername",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "JsonReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pipeline2",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"getmetadatoutput": {
+												"value": "@activity('Get Metadata1').output.childItems",
+												"type": "Expression"
+											},
+											"Customerfolder": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											},
+											"Pdfmapping": {
+												"value": "@item().pdf_mapping",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "PDF Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-25T18:44:30Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Extract data from PDF_Using_CustomModel_FMC')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Use this template to extract data from a PDF source.",
+				"activities": [
+					{
+						"name": "Form Recognizer - POST",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@pipeline().parameters.FormRecognizerURL",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Ocp-Apim-Subscription-Key": {
+									"value": "@pipeline().parameters.FormRecognizerKey",
+									"type": "Expression"
+								},
+								"contet-type": "application/pdf"
+							},
+							"body": {
+								"value": "@concat('{\"urlSource\":\"',pipeline().parameters.PDF_SourceURL,'\"}')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetPDFData_Dataflow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "stage",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "JsonToTable_binderkontraktjson-type42",
+								"type": "DataFlowReference",
+								"parameters": {
+									"Filename1": {
+										"value": "'@{activity('Get Metadata1').output.childItems[1].name}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"source1": {},
+									"source2": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					},
+					{
+						"name": "stage",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "Wait1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "stagejsonDataflow2",
+								"type": "DataFlowReference",
+								"parameters": {
+									"Key": {
+										"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"source1": {
+										"url": {
+											"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+											"type": "Expression"
+										}
+									},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "None",
+							"cacheSinks": {
+								"firstRowOnly": true
+							}
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Form Recognizer - POST",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 20
+						}
+					},
+					{
+						"name": "csvToAzureSqldb",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "GetPDFData_Dataflow",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "csvToSQLdb_Type4",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_FMC_PDF_Raw",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"FormRecognizerURL": {
+						"type": "string",
+						"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/FMC_mixed_model:analyze?api-version=2022-08-31"
+					},
+					"FormRecognizerKey": {
+						"type": "string",
+						"defaultValue": "0987f7cf06fe4ff0a5f07ffaeb35986f"
+					},
+					"PDF_SourceURL": {
+						"type": "string",
+						"defaultValue": "https://adlsa4ltriplea.blob.core.windows.net/fmcpdf/RAW/FMC%20Purchase%20Order%20-%204500130257.pdf?sp=r&st=2023-05-24T12:36:58Z&se=2023-05-24T20:36:58Z&spr=https&sv=2022-11-02&sr=b&sig=78UR1AcvHCtdupb7ow3hQKAHlJbgdBpT0lRDknkboFw%3D"
+					}
+				},
+				"variables": {
+					"URL": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "PDF Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-24T12:42:29Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/stagejsonDataflow2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Extract from PDF_to_CSV using sas url')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Use this template to extract data from a PDF source.",
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_FMC_PDF_Raw",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach PDF file",
+						"description": "Here we are getting the file name from the \nadlsa4ltriplea/FMCPDF/RAW",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Metadata1').output.childItems",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Form Recognizer - POST",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WebActivity for dynamic SAS URL generation",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@pipeline().parameters.FormRecognizerURL",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().parameters.FormRecognizerKey",
+												"type": "Expression"
+											},
+											"contet-type": "application/pdf"
+										},
+										"body": {
+											"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "GetPDFData_Dataflow",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "stage",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "1.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "JsonToTable_binderkontraktjson-type42",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Filename1": {
+													"value": "'@{item().name}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {},
+												"source2": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "stage",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "Wait1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "stagejsonDataflow2",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Key": {
+													"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {
+													"url": {
+														"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+														"type": "Expression"
+													}
+												},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "Wait1",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Form Recognizer - POST",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 20
+									}
+								},
+								{
+									"name": "csvToAzureSqldb",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "GetPDFData_Dataflow",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "csvToSQLdb_Type4",
+											"type": "DataFlowReference",
+											"parameters": {},
+											"datasetParameters": {
+												"source1": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "Fine"
+									}
+								},
+								{
+									"name": "WebActivity for dynamic SAS URL generation",
+									"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "blobpath",
+										"value": {
+											"value": "@concat('/fmcpdf/RAW/',item().name)\n\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"FormRecognizerURL": {
+						"type": "string",
+						"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/FMC_mixed_model:analyze?api-version=2022-08-31"
+					},
+					"FormRecognizerKey": {
+						"type": "string",
+						"defaultValue": "0987f7cf06fe4ff0a5f07ffaeb35986f"
+					},
+					"PDF_SourceURL": {
+						"type": "string",
+						"defaultValue": "https://adlsa4ltriplea.blob.core.windows.net/fmcpdf/RAW/FMC%20Purchase%20Order%20-%204500130257.pdf?sp=r&st=2023-05-24T12:36:58Z&se=2023-05-24T20:36:58Z&spr=https&sv=2022-11-02&sr=b&sig=78UR1AcvHCtdupb7ow3hQKAHlJbgdBpT0lRDknkboFw%3D"
+					}
+				},
+				"variables": {
+					"URL": {
+						"type": "String"
+					},
+					"blobpath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "PDF Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-25T13:14:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/stagejsonDataflow2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Extract from PDF_to_CSV using sas url_copy2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Use this template to extract data from a PDF source.",
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_FMC_PDF_Raw",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach PDF file",
+						"description": "Here we are getting the file name from the \nadlsa4ltriplea/FMCPDF/RAW",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Metadata1').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Form Recognizer - POST",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WebActivity for dynamic SAS URL generation",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@pipeline().parameters.FormRecognizerURL",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().parameters.FormRecognizerKey",
+												"type": "Expression"
+											},
+											"contet-type": "application/pdf"
+										},
+										"body": {
+											"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "GetPDFData_Dataflow",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "stage",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "1.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "sequential_JsonToTable_binderkontraktjson-type42_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Filename1": {
+													"value": "'@{item().name}'",
+													"type": "Expression"
+												},
+												"JSON_FILENAME": {
+													"value": "'@{concat(item().name,'.','json')}'",
+													"type": "Expression"
+												},
+												"CSV_FILENAME": {
+													"value": "'@{concat(item().name,'.','csv')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {},
+												"source2": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "stage",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "Wait1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "sequential_stagejsonDataflow2_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Key": {
+													"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+													"type": "Expression"
+												},
+												"JSON_FILENAME": {
+													"value": "'@{concat(item().name,'.','json')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {
+													"url": {
+														"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+														"type": "Expression"
+													}
+												},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "Wait1",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Form Recognizer - POST",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 20
+									}
+								},
+								{
+									"name": "csvToAzureSqldb",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "GetPDFData_Dataflow",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "Sequential_csvToSQLdb_Type4_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"CSV_FILENAME": {
+													"value": "'@{concat(item().name,'.','csv')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "Fine"
+									}
+								},
+								{
+									"name": "WebActivity for dynamic SAS URL generation",
+									"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "blobpath",
+										"value": {
+											"value": "@concat('/fmcpdf/RAW/',item().name)\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"FormRecognizerURL": {
+						"type": "string",
+						"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/FMC_mixed_model:analyze?api-version=2022-08-31"
+					},
+					"FormRecognizerKey": {
+						"type": "string",
+						"defaultValue": "0987f7cf06fe4ff0a5f07ffaeb35986f"
+					},
+					"PDF_SourceURL": {
+						"type": "string",
+						"defaultValue": "https://adlsa4ltriplea.blob.core.windows.net/fmcpdf/RAW/FMC%20Purchase%20Order%20-%204500130257.pdf?sp=r&st=2023-05-24T12:36:58Z&se=2023-05-24T20:36:58Z&spr=https&sv=2022-11-02&sr=b&sig=78UR1AcvHCtdupb7ow3hQKAHlJbgdBpT0lRDknkboFw%3D"
+					}
+				},
+				"variables": {
+					"URL": {
+						"type": "String"
+					},
+					"blobpath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "PDF Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-26T09:40:06Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/sequential_stagejsonDataflow2_copy1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Sequential_Extract from PDF_to_CSV using sas url_copy1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Use this template to extract data from a PDF source.",
+				"activities": [
+					{
+						"name": "Get Metadata1",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "ds_FMC_PDF_Raw",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "ForEach PDF file",
+						"description": "Here we are getting the file name from the \nadlsa4ltriplea/FMCPDF/RAW",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Get Metadata1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Get Metadata1').output.childItems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Form Recognizer - POST",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WebActivity for dynamic SAS URL generation",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@pipeline().parameters.FormRecognizerURL",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().parameters.FormRecognizerKey",
+												"type": "Expression"
+											},
+											"contet-type": "application/pdf"
+										},
+										"body": {
+											"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "GetPDFData_Dataflow",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "stage",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "1.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "sequential_JsonToTable_binderkontraktjson-type42_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Filename1": {
+													"value": "'@{item().name}'",
+													"type": "Expression"
+												},
+												"JSON_FILENAME": {
+													"value": "'@{concat(item().name,'.','json')}'",
+													"type": "Expression"
+												},
+												"CSV_FILENAME": {
+													"value": "'@{concat(item().name,'.','csv')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {},
+												"source2": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "stage",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "Wait1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "sequential_stagejsonDataflow2_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Key": {
+													"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+													"type": "Expression"
+												},
+												"JSON_FILENAME": {
+													"value": "'@{concat(item().name,'.','json')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {
+													"url": {
+														"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+														"type": "Expression"
+													}
+												},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								},
+								{
+									"name": "Wait1",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Form Recognizer - POST",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 20
+									}
+								},
+								{
+									"name": "csvToAzureSqldb",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "GetPDFData_Dataflow",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "Sequential_csvToSQLdb_Type4_copy1",
+											"type": "DataFlowReference",
+											"parameters": {
+												"CSV_FILENAME": {
+													"value": "'@{concat(item().name,'.','csv')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "Fine"
+									}
+								},
+								{
+									"name": "WebActivity for dynamic SAS URL generation",
+									"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "blobpath",
+										"value": {
+											"value": "@concat('/fmcpdf/RAW/',item().name)\n\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"FormRecognizerURL": {
+						"type": "string",
+						"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/FMC_mixed_model:analyze?api-version=2022-08-31"
+					},
+					"FormRecognizerKey": {
+						"type": "string",
+						"defaultValue": "0987f7cf06fe4ff0a5f07ffaeb35986f"
+					},
+					"PDF_SourceURL": {
+						"type": "string",
+						"defaultValue": "https://adlsa4ltriplea.blob.core.windows.net/fmcpdf/RAW/FMC%20Purchase%20Order%20-%204500130257.pdf?sp=r&st=2023-05-24T12:36:58Z&se=2023-05-24T20:36:58Z&spr=https&sv=2022-11-02&sr=b&sig=78UR1AcvHCtdupb7ow3hQKAHlJbgdBpT0lRDknkboFw%3D"
+					}
+				},
+				"variables": {
+					"URL": {
+						"type": "String"
+					},
+					"blobpath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "PDF Extract"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-25T13:14:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/sequential_stagejsonDataflow2_copy1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/child')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.getmetadatoutput",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Copy data1",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "stage",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "JsonSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "JsonReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"value": "@json(pipeline().parameters.Pdfmapping)",
+											"type": "Expression"
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "Json1",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')",
+													"type": "Expression"
+												},
+												"filename": {
+													"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DelimitedText1",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+													"type": "Expression"
+												},
+												"Filename": {
+													"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.csv')\n\n",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "blobpath",
+										"value": {
+											"value": "@concat('/rawtriplea/',pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf/',item().name)",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "WebActivity for dynamic SAS URL generation",
+									"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Form Recognizer - POST",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "WebActivity for dynamic SAS URL generation",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@pipeline().parameters.FormRecognizerURL",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {
+											"Ocp-Apim-Subscription-Key": {
+												"value": "@pipeline().parameters.FormRecognizerKey",
+												"type": "Expression"
+											},
+											"contet-type": "application/pdf"
+										},
+										"body": {
+											"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Wait1",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Form Recognizer - POST",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 30
+									}
+								},
+								{
+									"name": "stage",
+									"type": "ExecuteDataFlow",
+									"dependsOn": [
+										{
+											"activity": "Wait1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataflow": {
+											"referenceName": "cloned_sequential_stagejsonDataflow2_copy2",
+											"type": "DataFlowReference",
+											"parameters": {
+												"Key": {
+													"value": "'@{pipeline().parameters.FormRecognizerKey}'",
+													"type": "Expression"
+												},
+												"JSON_FILENAME": {
+													"value": "'@{concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n}'",
+													"type": "Expression"
+												},
+												"folderpath": {
+													"value": "'@{concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')}'",
+													"type": "Expression"
+												}
+											},
+											"datasetParameters": {
+												"source1": {
+													"url": {
+														"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
+														"type": "Expression"
+													}
+												},
+												"sink1": {}
+											}
+										},
+										"staging": {},
+										"compute": {
+											"coreCount": 8,
+											"computeType": "General"
+										},
+										"traceLevel": "None",
+										"cacheSinks": {
+											"firstRowOnly": true
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"getmetadatoutput": {
+						"type": "array"
+					},
+					"Customerfolder": {
+						"type": "string"
+					},
+					"Pdfmapping": {
+						"type": "string"
+					},
+					"FormRecognizerURL": {
+						"type": "string"
+					},
+					"FormRecognizerKey": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"URL": {
+						"type": "String"
+					},
+					"blobpath": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Pipeline _PDF_dynamic"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:50Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/cloned_sequential_stagejsonDataflow2_copy2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/graphicfile_child_1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach Customer",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.Childitems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Lookup1",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"dataset": {
+											"referenceName": "ds_c1_order",
+											"type": "DatasetReference",
+											"parameters": {
+												"Filepath": {
+													"value": "@concat(pipeline().parameters.Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')\n",
+													"type": "Expression"
+												},
+												"Filename": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Lookup1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Graphicfile_child_2",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"Customername": {
+												"value": "@pipeline().parameters.Customername",
+												"type": "Expression"
+											},
+											"lookupoutput": {
+												"value": "@activity('Lookup1').output.value",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Childitems": {
+						"type": "string"
+					},
+					"Customername": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Graphicfilename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Graphicfile"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-30T18:54:57Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_copydata_source_to_raw_adls')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup INTO CONTROLTABLE",
+						"description": " up into control table -Control_table_TripleA for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup INTO CONTROLTABLE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup INTO CONTROLTABLE').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of source",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_source_triplea_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"foldername": {
+													"value": "@item().Customername",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"itemName",
+											"childItems",
+											"lastModified"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of source",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_childpipeline_source_raw",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"childitems": {
+												"value": "@activity('Get Metadata of source').output.childItems",
+												"type": "Expression"
+											},
+											"source_folder_name": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Pipeline_source_to_raw"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:16Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_childpipeline_source_raw')]"
+			]
+		}
+	]
+}
