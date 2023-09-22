@@ -6,7 +6,7 @@
 			"value": "a4ltriplea"
 		},
 		"AzureDataLakeStorage1_accountKey": {
-			"value": ""
+			"value": "F21tgsr+RfgBfFlRBqW8nAtVAmaSnH+nMtS/XXWhQ/YOyF/J5NT9cUgAaw7ohgrT85hFribranrc+ASt3o1rkQ=="
 		},
 		"AzureDataLakeStorage2_accountKey": {
 			"value": ""
@@ -42,7 +42,7 @@
 			"value": ""
 		},
 		"AzureDataLakeStorage1_properties_typeProperties_url": {
-			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+			"value": "https://a4ltripleatest.dfs.core.windows.net/"
 		},
 		"AzureDataLakeStorage2_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
