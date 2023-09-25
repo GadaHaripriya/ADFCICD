@@ -1,5 +1,13 @@
 {
 	"name": "a4ltriplea",
+	"properties": {
+		"globalParameters": {
+			"fr_url": {
+				"type": "string",
+				"value": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"
+			}
+		}
+	},
 	"location": "eastus",
 	"identity": {
 		"type": "SystemAssigned",

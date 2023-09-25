@@ -115,7 +115,7 @@
 										"type": "Expression"
 									},
 									"FormRecognizerURL": {
-										"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+										"value": "@concat(pipeline().globalParameters.fr_url,item().Model_ID,':analyze?api-version=2022-08-31')",
 										"type": "Expression"
 									},
 									"FormRecognizerKey": {
