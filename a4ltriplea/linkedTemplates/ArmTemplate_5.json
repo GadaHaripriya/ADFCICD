@@ -13,6 +13,343 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_raw_prestage_stage_xlsx')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "cp_raw_prestage_xlsx",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ExcelSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": {
+										"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/',pipeline().parameters.Filetype,'/')",
+										"type": "Expression"
+									},
+									"wildcardFileName": {
+										"value": "@pipeline().parameters.Filename",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"value": "@pipeline().parameters.XLSXColumnMapping",
+								"type": "Expression"
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_adls_raw_prestage_xlsx",
+								"type": "DatasetReference",
+								"parameters": {
+									"source_folder": {
+										"value": "@pipeline().parameters.source_folder",
+										"type": "Expression"
+									},
+									"filetype": "xlsx",
+									"year": {
+										"value": "@pipeline().parameters.Year",
+										"type": "Expression"
+									},
+									"month": {
+										"value": "@pipeline().parameters.Month",
+										"type": "Expression"
+									},
+									"Customernumber": {
+										"value": "@pipeline().parameters.Customernumber",
+										"type": "Expression"
+									},
+									"week": {
+										"value": "@pipeline().parameters.week",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_adls_prestage_csv",
+								"type": "DatasetReference",
+								"parameters": {
+									"Customerfolder": {
+										"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','parsed_csv')",
+										"type": "Expression"
+									},
+									"Filename": {
+										"value": "@replace(pipeline().parameters.Filename,'.xlsx','srcxlsx.csv')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "sp_auditlogs-raw_prestage_success_xlsx",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "cp_raw_prestage_xlsx",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[app].[usp_AuditLogsRawToPrestage]",
+							"storedProcedureParameters": {
+								"CustomerNumber": {
+									"value": {
+										"value": "@pipeline().parameters.Customernumber",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Errors": {
+									"value": null,
+									"type": "String"
+								},
+								"FilenameatPrestage": {
+									"value": {
+										"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineEndTime": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineRunId": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineStartTime": {
+									"value": {
+										"value": "@pipeline().parameters.Pipelinestarttime",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"Raw_Source_filetype": {
+									"value": {
+										"value": "@pipeline().parameters.Filetype",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Status": {
+									"value": "success",
+									"type": "String"
+								},
+								"TriggerID": {
+									"value": {
+										"value": "@pipeline().parameters.TriggerID",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_a4ltriplea",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "sp_auditlogs-raw_prestage_failure_xlsx",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "cp_raw_prestage_xlsx",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[app].[usp_AuditLogsRawToPrestage]",
+							"storedProcedureParameters": {
+								"CustomerNumber": {
+									"value": {
+										"value": "@pipeline().parameters.Customernumber",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Errors": {
+									"value": {
+										"value": "@activity('cp_raw_prestage_xlsx').output.errors[0].Message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"FilenameatPrestage": {
+									"value": {
+										"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineEndTime": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineRunId": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineStartTime": {
+									"value": {
+										"value": "@pipeline().parameters.Pipelinestarttime",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"Raw_Source_filetype": {
+									"value": {
+										"value": "@pipeline().parameters.Filetype",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"Status": {
+									"value": "failure",
+									"type": "String"
+								},
+								"TriggerID": {
+									"value": {
+										"value": "@pipeline().parameters.TriggerID",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_a4ltriplea",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"source_folder": {
+						"type": "string"
+					},
+					"Filetype": {
+						"type": "string"
+					},
+					"Filename": {
+						"type": "string"
+					},
+					"XLSXColumnMapping": {
+						"type": "object"
+					},
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"Customernumber": {
+						"type": "string"
+					},
+					"week": {
+						"type": "string"
+					},
+					"Pipelinestarttime": {
+						"type": "string"
+					},
+					"TriggerID": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"PipelineStartTime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:05Z"
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_childpipeline_source_raw')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -3241,307 +3578,6 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/dataflows/sequential_stagejsonDataflow2_copy1')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/child')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "ForEach1",
-						"type": "ForEach",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@pipeline().parameters.getmetadatoutput",
-								"type": "Expression"
-							},
-							"isSequential": true,
-							"activities": [
-								{
-									"name": "Copy data1",
-									"type": "Copy",
-									"dependsOn": [
-										{
-											"activity": "stage",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "JsonSource",
-											"storeSettings": {
-												"type": "AzureBlobFSReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "JsonReadSettings"
-											}
-										},
-										"sink": {
-											"type": "DelimitedTextSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextWriteSettings",
-												"quoteAllText": true,
-												"fileExtension": ".txt"
-											}
-										},
-										"enableStaging": false,
-										"translator": {
-											"value": "@json(pipeline().parameters.Pdfmapping)",
-											"type": "Expression"
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "Json1",
-											"type": "DatasetReference",
-											"parameters": {
-												"Customerfolder": {
-													"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')",
-													"type": "Expression"
-												},
-												"filename": {
-													"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "DelimitedText1",
-											"type": "DatasetReference",
-											"parameters": {
-												"Customerfolder": {
-													"value": "@concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
-													"type": "Expression"
-												},
-												"Filename": {
-													"value": "@concat(substring(item().name,0,sub(length(item().name),4)),'.csv')\n\n",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								},
-								{
-									"name": "Set variable1",
-									"type": "SetVariable",
-									"dependsOn": [],
-									"policy": {
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "blobpath",
-										"value": {
-											"value": "@concat('/rawtriplea/',pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf/',item().name)",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "WebActivity for dynamic SAS URL generation",
-									"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
-									"type": "WebActivity",
-									"dependsOn": [
-										{
-											"activity": "Set variable1",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"url": "https://prod-51.eastus.logic.azure.com:443/workflows/da16536601ad45388f63fcbed4239ad9/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=8r4etuCTo2flU4WkzgoEIU4hfmwm6hNMXK4iQUPt4m8",
-										"method": "POST",
-										"headers": {},
-										"body": {
-											"value": "{\n    \"blobpath\":\"@{variables('blobpath')}\"\n}",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "Form Recognizer - POST",
-									"type": "WebActivity",
-									"dependsOn": [
-										{
-											"activity": "WebActivity for dynamic SAS URL generation",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "7.00:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"url": {
-											"value": "@pipeline().parameters.FormRecognizerURL",
-											"type": "Expression"
-										},
-										"method": "POST",
-										"headers": {
-											"Ocp-Apim-Subscription-Key": {
-												"value": "@pipeline().parameters.FormRecognizerKey",
-												"type": "Expression"
-											},
-											"contet-type": "application/pdf"
-										},
-										"body": {
-											"value": "@concat('{\"urlSource\":\"',activity('Webactivity for dynamic SAS URL generation').output.Response,'\"}')",
-											"type": "Expression"
-										}
-									}
-								},
-								{
-									"name": "Wait1",
-									"type": "Wait",
-									"dependsOn": [
-										{
-											"activity": "Form Recognizer - POST",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"userProperties": [],
-									"typeProperties": {
-										"waitTimeInSeconds": 30
-									}
-								},
-								{
-									"name": "stage",
-									"type": "ExecuteDataFlow",
-									"dependsOn": [
-										{
-											"activity": "Wait1",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"dataflow": {
-											"referenceName": "cloned_sequential_stagejsonDataflow2_copy2",
-											"type": "DataFlowReference",
-											"parameters": {
-												"Key": {
-													"value": "'@{pipeline().parameters.FormRecognizerKey}'",
-													"type": "Expression"
-												},
-												"JSON_FILENAME": {
-													"value": "'@{concat(substring(item().name,0,sub(length(item().name),4)),'.json')\n}'",
-													"type": "Expression"
-												},
-												"folderpath": {
-													"value": "'@{concat(pipeline().parameters.Customerfolder,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_json_PDF')}'",
-													"type": "Expression"
-												}
-											},
-											"datasetParameters": {
-												"source1": {
-													"url": {
-														"value": "@activity('Form Recognizer - POST').output.ADFWebActivityResponseHeaders['Operation-Location']",
-														"type": "Expression"
-													}
-												},
-												"sink1": {}
-											}
-										},
-										"staging": {},
-										"compute": {
-											"coreCount": 8,
-											"computeType": "General"
-										},
-										"traceLevel": "None",
-										"cacheSinks": {
-											"firstRowOnly": true
-										}
-									}
-								}
-							]
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"parameters": {
-					"getmetadatoutput": {
-						"type": "array"
-					},
-					"Customerfolder": {
-						"type": "string"
-					},
-					"Pdfmapping": {
-						"type": "string"
-					},
-					"FormRecognizerURL": {
-						"type": "string"
-					},
-					"FormRecognizerKey": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"URL": {
-						"type": "String"
-					},
-					"blobpath": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Pipeline _PDF_dynamic"
-				},
-				"annotations": [],
-				"lastPublishTime": "2023-05-28T10:46:50Z"
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/cloned_sequential_stagejsonDataflow2_copy2')]"
 			]
 		}
 	]

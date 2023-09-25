@@ -110,6 +110,10 @@
 		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"default_properties_fr_url_value": {
+			"type": "string",
+			"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"
 		}
 	},
 	"variables": {
@@ -20358,6 +20362,18 @@
 				"[concat(variables('factoryId'), '/datasets/RestResource1311')]",
 				"[concat(variables('factoryId'), '/linkedServices/LS_Triplea_adls')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/default')]",
+			"type": "Microsoft.DataFactory/factories/globalparameters",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"fr_url": {
+					"type": "string",
+					"value": "[parameters('default_properties_fr_url_value')]"
+				}
+			},
+			"dependsOn": []
 		}
 	]
 }

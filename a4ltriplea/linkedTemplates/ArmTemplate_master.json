@@ -111,6 +111,10 @@
 			"type": "string",
 			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
 		},
+		"default_properties_fr_url_value": {
+			"type": "string",
+			"defaultValue": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -176,6 +180,9 @@
 					},
 					"ls_sql_a4ltriplea_connectionString": {
 						"value": "[parameters('ls_sql_a4ltriplea_connectionString')]"
+					},
+					"default_properties_fr_url_value": {
+						"value": "[parameters('default_properties_fr_url_value')]"
 					},
 					"AzureDataLakeStorage1_properties_typeProperties_url": {
 						"value": "[parameters('AzureDataLakeStorage1_properties_typeProperties_url')]"

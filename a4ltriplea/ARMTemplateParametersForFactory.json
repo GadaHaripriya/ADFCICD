@@ -82,6 +82,9 @@
 		},
 		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"default_properties_fr_url_value": {
+			"value": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"
 		}
 	}
 }

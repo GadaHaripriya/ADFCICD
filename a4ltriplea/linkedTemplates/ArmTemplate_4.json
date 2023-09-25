@@ -13,6 +13,180 @@
 	},
 	"resources": [
 		{
+			"name": "[concat(parameters('factoryName'), '/JsonToTable_binderkontraktjson-type42')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "This dataflow takes the output from Form Recognizer and extracts the table information to a storage sink.\nThis specifically works with the Form Recognizer Layout API. You can also save the transformations as a flowlet if you would like to reuse the logic in other dataflows. ",
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source1"
+						},
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"linkedService": {
+								"referenceName": "LS_Triplea_adls",
+								"type": "LinkedServiceReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "flatten2"
+						},
+						{
+							"name": "derivedColumn2"
+						},
+						{
+							"name": "lookup1"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     Filename1 as string",
+						"}",
+						"source(output(",
+						"          body as (analyzeResult as (apiVersion as date, content as string, documents as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, docType as string, fields as ({Billing Information} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Contact Person} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Customer name} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Email as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), FMC_table as (confidence as boolean, type as string, valueArray as (confidence as boolean, type as string, valueObject as ({Delivery Date} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Item as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as short, spans as (length as short, offset as short)[], type as string, valueString as short), {Material Number / Description} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Net Amount} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Qty as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), UOM as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Unit Price/ Cur} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)))[]), {Information Email} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Information- Date} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Information- Terms of Payment} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Purchase Order} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as long, spans as (length as short, offset as short)[], type as string, valueString as long), {Ship To/ Delivery Address} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Sub Total} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Total Amount} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Address} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Name} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Number} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as integer, spans as (length as short, offset as short)[], type as string, valueString as integer), {Vendor Telephone} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as long, spans as (length as short, offset as short)[], type as string, valueString as long), {Vendor VAT Number} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)), spans as (length as short, offset as boolean)[])[], modelId as string, pages as (angle as boolean, height as short, kind as string, lines as (content as string, polygon as double[], spans as (length as short, offset as short)[])[], pageNumber as short, spans as (length as short, offset as short)[], unit as string, width as double, words as (confidence as double, content as string, polygon as double[], span as (length as short, offset as short))[])[], stringIndexType as string, styles as string[], tables as (boundingRegions as (pageNumber as short, polygon as double[])[], cells as (boundingRegions as (pageNumber as short, polygon as double[])[], columnIndex as short, content as string, kind as string, rowIndex as short, rowSpan as short, spans as (length as short, offset as short)[])[], columnCount as short, rowCount as short, spans as (length as short, offset as short)[])[]), createdDateTime as timestamp, lastUpdatedDateTime as timestamp, status as string),",
+						"          headers as ({Content-Length} as integer, {Content-Type} as string, Date as string, {Strict-Transport-Security} as string, {apim-request-id} as string, {x-content-type-options} as string, {x-envoy-upstream-service-time} as short, {x-ms-region} as string)",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'json',",
+						"     fileSystem: 'fmcpdf',",
+						"     folderPath: 'STAGE',",
+						"     fileName: 'jsonv3.0.json',",
+						"     documentForm: 'singleDocument',",
+						"     partitionBy('hash', 1)) ~> source1",
+						"source(output(",
+						"          body as (analyzeResult as (apiVersion as date, content as string, documents as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, docType as string, fields as ({Billing Information} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Contact Person} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Customer name} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Email as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), FMC_table as (confidence as boolean, type as string, valueArray as (confidence as boolean, type as string, valueObject as ({Delivery Date} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Item as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as short, spans as (length as short, offset as short)[], type as string, valueString as short), {Material Number / Description} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Net Amount} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), Qty as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), UOM as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Unit Price/ Cur} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as boolean, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)))[]), {Information Email} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Information- Date} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Information- Terms of Payment} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Purchase Order} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as long, spans as (length as short, offset as short)[], type as string, valueString as long), {Ship To/ Delivery Address} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Sub Total} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Total Amount} as (boundingRegions as (pageNumber as short, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Address} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Name} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string), {Vendor Number} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as integer, spans as (length as short, offset as short)[], type as string, valueString as integer), {Vendor Telephone} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as long, spans as (length as short, offset as short)[], type as string, valueString as long), {Vendor VAT Number} as (boundingRegions as (pageNumber as boolean, polygon as double[])[], confidence as double, content as string, spans as (length as short, offset as short)[], type as string, valueString as string)), spans as (length as short, offset as boolean)[])[], modelId as string, pages as (angle as boolean, height as short, kind as string, lines as (content as string, polygon as double[], spans as (length as short, offset as short)[])[], pageNumber as short, spans as (length as short, offset as short)[], unit as string, width as double, words as (confidence as double, content as string, polygon as double[], span as (length as short, offset as short))[])[], stringIndexType as string, styles as string[], tables as (boundingRegions as (pageNumber as short, polygon as double[])[], cells as (boundingRegions as (pageNumber as short, polygon as double[])[], columnIndex as short, content as string, kind as string, rowIndex as short, rowSpan as short, spans as (length as short, offset as short)[])[], columnCount as short, rowCount as short, spans as (length as short, offset as short)[])[]), createdDateTime as timestamp, lastUpdatedDateTime as timestamp, status as string),",
+						"          headers as ({Content-Length} as integer, {Content-Type} as string, Date as string, {Strict-Transport-Security} as string, {apim-request-id} as string, {x-content-type-options} as string, {x-envoy-upstream-service-time} as short, {x-ms-region} as string)",
+						"     ),",
+						"     useSchema: false,",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     format: 'json',",
+						"     fileSystem: 'fmcpdf',",
+						"     folderPath: 'STAGE',",
+						"     fileName: 'jsonv3.0.json',",
+						"     documentForm: 'documentPerLine') ~> source2",
+						"source1 foldDown(unroll(body.analyzeResult.documents),",
+						"     mapColumn(",
+						"          {Billing Information} = body.analyzeResult.documents.fields.{Billing Information}.content,",
+						"          {Contact Person} = body.analyzeResult.documents.fields.{Contact Person}.content,",
+						"          {Customer Name} = body.analyzeResult.documents.fields.{Customer name}.content,",
+						"          Email = body.analyzeResult.documents.fields.Email.content,",
+						"          {Information Email} = body.analyzeResult.documents.fields.{Information Email}.content,",
+						"          {Information Date} = body.analyzeResult.documents.fields.{Information- Date}.content,",
+						"          {Information-Terms of Payment} = body.analyzeResult.documents.fields.{Information- Terms of Payment}.content,",
+						"          {Purchase Order} = body.analyzeResult.documents.fields.{Purchase Order}.content,",
+						"          {Ship To/ Delivery Addressntent} = body.analyzeResult.documents.fields.{Ship To/ Delivery Address}.content,",
+						"          {Sub Total} = body.analyzeResult.documents.fields.{Sub Total}.content,",
+						"          {Total Amount} = body.analyzeResult.documents.fields.{Total Amount}.content,",
+						"          {Vendor Address} = body.analyzeResult.documents.fields.{Vendor Address}.content,",
+						"          {Vendor Name} = body.analyzeResult.documents.fields.{Vendor Name}.content,",
+						"          {Vendor Number} = body.analyzeResult.documents.fields.{Vendor Number}.content,",
+						"          {Vendor Telephone} = body.analyzeResult.documents.fields.{Vendor Telephone}.content,",
+						"          {Vendor VAT Number} = body.analyzeResult.documents.fields.{Vendor VAT Number}.content",
+						"     ),",
+						"     partitionBy('hash', 1),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 derive(Lookup = 1,",
+						"          File_name = $Filename1) ~> derivedColumn1",
+						"source2 foldDown(unroll(body.analyzeResult.documents.fields.FMC_table.valueArray),",
+						"     mapColumn(",
+						"          Item = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.Item.content,",
+						"          {Material Number / Description} = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.{Material Number / Description}.content,",
+						"          Qty = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.Qty.content,",
+						"          UOM = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.UOM.content,",
+						"          {Unit Price/ Cur} = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.{Unit Price/ Cur}.content,",
+						"          {Net Amount} = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.{Net Amount}.content,",
+						"          {Delivery Date} = body.analyzeResult.documents.fields.FMC_table.valueArray.valueObject.{Delivery Date}.content",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten2",
+						"flatten2 derive(Lookup = 1) ~> derivedColumn2",
+						"derivedColumn2, derivedColumn1 lookup(derivedColumn2@Lookup == derivedColumn1@Lookup,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> lookup1",
+						"lookup1 select(mapColumn(",
+						"          Item,",
+						"          {Material Number / Description},",
+						"          Qty,",
+						"          UOM,",
+						"          {Unit Price/ Cur},",
+						"          {Net Amount},",
+						"          {Delivery Date},",
+						"          {Billing Information},",
+						"          {Contact Person},",
+						"          {Customer Name},",
+						"          Email,",
+						"          {Information Email},",
+						"          {Information Date},",
+						"          {Information-Terms of Payment},",
+						"          {Purchase Order},",
+						"          {Ship To/ Delivery Addressntent},",
+						"          {Sub Total},",
+						"          {Total Amount},",
+						"          {Vendor Address},",
+						"          {Vendor Name},",
+						"          {Vendor Number},",
+						"          {Vendor Telephone},",
+						"          {Vendor VAT Number},",
+						"          Filename = File_name",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'delimited',",
+						"     fileSystem: 'fmcpdf',",
+						"     folderPath: 'PROCESSED',",
+						"     columnDelimiter: ',',",
+						"     escapeChar: '\\\\',",
+						"     quoteChar: '\\\"',",
+						"     columnNamesAsHeader: true,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/JsonToTable_test_1')]",
 			"type": "Microsoft.DataFactory/factories/dataflows",
 			"apiVersion": "2018-06-01",
@@ -3772,343 +3946,6 @@
 						"type": "string"
 					},
 					"Customernumber": {
-						"type": "string"
-					},
-					"TriggerID": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"PipelineStartTime": {
-						"type": "String"
-					}
-				},
-				"folder": {
-					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
-				},
-				"annotations": [],
-				"lastPublishTime": "2023-08-07T14:47:05Z"
-			},
-			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_adf_raw_prestage_stage_xlsx')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "cp_raw_prestage_xlsx",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "ExcelSource",
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"wildcardFolderPath": {
-										"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/',pipeline().parameters.Filetype,'/')",
-										"type": "Expression"
-									},
-									"wildcardFileName": {
-										"value": "@pipeline().parameters.Filename",
-										"type": "Expression"
-									},
-									"enablePartitionDiscovery": false
-								}
-							},
-							"sink": {
-								"type": "DelimitedTextSink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
-								},
-								"formatSettings": {
-									"type": "DelimitedTextWriteSettings",
-									"quoteAllText": true,
-									"fileExtension": ".txt"
-								}
-							},
-							"enableStaging": false,
-							"translator": {
-								"value": "@pipeline().parameters.XLSXColumnMapping",
-								"type": "Expression"
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_adls_raw_prestage_xlsx",
-								"type": "DatasetReference",
-								"parameters": {
-									"source_folder": {
-										"value": "@pipeline().parameters.source_folder",
-										"type": "Expression"
-									},
-									"filetype": "xlsx",
-									"year": {
-										"value": "@pipeline().parameters.Year",
-										"type": "Expression"
-									},
-									"month": {
-										"value": "@pipeline().parameters.Month",
-										"type": "Expression"
-									},
-									"Customernumber": {
-										"value": "@pipeline().parameters.Customernumber",
-										"type": "Expression"
-									},
-									"week": {
-										"value": "@pipeline().parameters.week",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "ds_adls_prestage_csv",
-								"type": "DatasetReference",
-								"parameters": {
-									"Customerfolder": {
-										"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','parsed_csv')",
-										"type": "Expression"
-									},
-									"Filename": {
-										"value": "@replace(pipeline().parameters.Filename,'.xlsx','srcxlsx.csv')",
-										"type": "Expression"
-									}
-								}
-							}
-						]
-					},
-					{
-						"name": "sp_auditlogs-raw_prestage_success_xlsx",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "cp_raw_prestage_xlsx",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[app].[usp_AuditLogsRawToPrestage]",
-							"storedProcedureParameters": {
-								"CustomerNumber": {
-									"value": {
-										"value": "@pipeline().parameters.Customernumber",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Errors": {
-									"value": null,
-									"type": "String"
-								},
-								"FilenameatPrestage": {
-									"value": {
-										"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineEndTime": {
-									"value": {
-										"value": "@utcNow()",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@pipeline().Pipeline",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineRunId": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineStartTime": {
-									"value": {
-										"value": "@pipeline().parameters.Pipelinestarttime",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"Raw_Source_filetype": {
-									"value": {
-										"value": "@pipeline().parameters.Filetype",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Status": {
-									"value": "success",
-									"type": "String"
-								},
-								"TriggerID": {
-									"value": {
-										"value": "@pipeline().parameters.TriggerID",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "ls_sql_a4ltriplea",
-							"type": "LinkedServiceReference"
-						}
-					},
-					{
-						"name": "sp_auditlogs-raw_prestage_failure_xlsx",
-						"type": "SqlServerStoredProcedure",
-						"dependsOn": [
-							{
-								"activity": "cp_raw_prestage_xlsx",
-								"dependencyConditions": [
-									"Failed"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"storedProcedureName": "[[app].[usp_AuditLogsRawToPrestage]",
-							"storedProcedureParameters": {
-								"CustomerNumber": {
-									"value": {
-										"value": "@pipeline().parameters.Customernumber",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Errors": {
-									"value": {
-										"value": "@activity('cp_raw_prestage_xlsx').output.errors[0].Message",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"FilenameatPrestage": {
-									"value": {
-										"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineEndTime": {
-									"value": {
-										"value": "@utcNow()",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"PipelineName": {
-									"value": {
-										"value": "@pipeline().Pipeline",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineRunId": {
-									"value": {
-										"value": "@pipeline().RunId",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"PipelineStartTime": {
-									"value": {
-										"value": "@pipeline().parameters.Pipelinestarttime",
-										"type": "Expression"
-									},
-									"type": "DateTime"
-								},
-								"Raw_Source_filetype": {
-									"value": {
-										"value": "@pipeline().parameters.Filetype",
-										"type": "Expression"
-									},
-									"type": "String"
-								},
-								"Status": {
-									"value": "failure",
-									"type": "String"
-								},
-								"TriggerID": {
-									"value": {
-										"value": "@pipeline().parameters.TriggerID",
-										"type": "Expression"
-									},
-									"type": "String"
-								}
-							}
-						},
-						"linkedServiceName": {
-							"referenceName": "ls_sql_a4ltriplea",
-							"type": "LinkedServiceReference"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {},
-					"cancelAfter": {}
-				},
-				"parameters": {
-					"source_folder": {
-						"type": "string"
-					},
-					"Filetype": {
-						"type": "string"
-					},
-					"Filename": {
-						"type": "string"
-					},
-					"XLSXColumnMapping": {
-						"type": "object"
-					},
-					"Year": {
-						"type": "string"
-					},
-					"Month": {
-						"type": "string"
-					},
-					"Customernumber": {
-						"type": "string"
-					},
-					"week": {
-						"type": "string"
-					},
-					"Pipelinestarttime": {
 						"type": "string"
 					},
 					"TriggerID": {
