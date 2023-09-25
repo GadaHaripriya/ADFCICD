@@ -135,7 +135,7 @@
 			}
 		},
 		"folder": {
-			"name": "Child Pipelines/Child Pipelines Post-UI/Rejected Data Ingestion"
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Rejected Data Ingestion"
 		},
 		"annotations": []
 	}

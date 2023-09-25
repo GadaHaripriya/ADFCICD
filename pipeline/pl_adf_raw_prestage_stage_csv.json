@@ -326,7 +326,7 @@
 			}
 		},
 		"folder": {
-			"name": "Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
 		},
 		"annotations": [],
 		"lastPublishTime": "2023-08-07T14:47:05Z"
