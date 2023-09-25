@@ -11,6 +11,9 @@
 		"AzureDataLakeStorage2_accountKey": {
 			"value": ""
 		},
+		"AzureDatabricks1_accessToken": {
+			"value": ""
+		},
 		"LS_Triplea_adls_accountKey": {
 			"value": ""
 		},
@@ -46,6 +49,9 @@
 		},
 		"AzureDataLakeStorage2_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+			"value": "0925-072229-bg7pclm4"
 		},
 		"LS_Triplea_adls_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"

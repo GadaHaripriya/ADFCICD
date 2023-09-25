@@ -1,0 +1,4745 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "a4ltriplea"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/graphicfile_child_1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach Customer",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@pipeline().parameters.Childitems",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Lookup1",
+									"type": "Lookup",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "AzureBlobFSReadSettings",
+												"recursive": true,
+												"enablePartitionDiscovery": false
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"dataset": {
+											"referenceName": "ds_c1_order",
+											"type": "DatasetReference",
+											"parameters": {
+												"Filepath": {
+													"value": "@concat(pipeline().parameters.Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')\n",
+													"type": "Expression"
+												},
+												"Filename": {
+													"value": "@item().name",
+													"type": "Expression"
+												}
+											}
+										},
+										"firstRowOnly": false
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Lookup1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "Graphicfile_child_2",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"Customername": {
+												"value": "@pipeline().parameters.Customername",
+												"type": "Expression"
+											},
+											"lookupoutput": {
+												"value": "@activity('Lookup1').output.value",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Childitems": {
+						"type": "string"
+					},
+					"Customername": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Graphicfilename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Graphicfile"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-30T18:54:57Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_aaa_CustomerOrderData_load')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lk_incrementaldate_watermarktable",
+						"description": "getting the  last_modified_date from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData'",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "exe_aaa_orders_rako_db",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select last_modified_date as last_modified_date from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "csvtoazuresqltable1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+						"description": "joining app.tbl_aaa_orders_temp with app.tbl_aaa_master_customerorderdata_stg table  and loading the data into final table -  tbl_aaa_CustomerOrderData",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "lk_incrementaldate_watermarktable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select a.[MaterialNumber]\n,[PurchaseOrder]\n,[VendorNumber]\n,[VendorName]\n,[VATNumber]\n,[OrderAddressName]\n,[OrderAddressStreet]\n,[OrderAdressPostalCode]\n,[OrderAdressCity]\n,[OrderAdressCountry]\n,[Telephone]\n,[VendorEmail]\n,[Date]\n ,[TermsofPayment]\n ,[ContactPerson]\n ,[Email]\n,[DeliveryAdressName]\n ,[DeliveryAdressNameAddition]\n,[DeliveryAdressStreet]\n ,[DeliveryAdressPostalCode]\n ,[DeliveryAdressCity]\n ,[DeliveryAdressCountry]\n ,[BillingAdressName]\n ,[BillingAdressStreet]\n ,[BillingAdressPostalCode]\n ,[BillingAdressCity]\n ,[BillingAdressCountry]\n,[BillingE-Mail]\n,[BillingcustomerVATNumber]\n,[ResidentCountryVATID]\n,[HeaderText]\n,cast([Item] as int) as Item\n,[Size]\n,[WindingMethod]\n,[Qty]\n,[UOM]\n,cast(replace([UnitPriceCur],',','') as REAL) as [UnitPriceCur]\n,[NetAmount]\n,[DeliveryDate]\n,[SubTotal]\n,[TotalAmount]\n,[Description]\n,case when a.secondary_filepath is null and \nprimary_component is not null and (a.DescriptionDQ not like '%Material Number%' or a.DescriptionDQ is null) then \n\tcase when descriptiondq is null then 'BASE Artwork file has not been uploaded in Source Folder'\n\telse concat([DescriptionDQ],';','BASE Artwork file has not been uploaded in Source Folder') end\nwhen a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0\nand (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\n\tcase when descriptiondq is null then 'Master Data isnt available in RAKO Database'\n\telse concat([DescriptionDQ],';','Master Data isnt available in RAKO Database') end\nwhen a.primary_filepath is null and (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\ncase when descriptiondq is null then 'BOOKLABEL Artwork File is missing in Source Folder'\n\telse concat([DescriptionDQ],';','BOOKLABEL Artwork File has not been uploaded in Source Folder') end\nelse DescriptionDQ \nend as DescriptionDQ\n,cast(a.[CustomerNumber] as int) as [CustomerNumber]\n,[FileName]\n,cast([Etikettennummer] as int) as [Etikettennummer]\n,[Aenderungsindex]\n,[ArtikelnummerKunde]\n,cast([Stammnummer] as int) as Stammnummer\n,[Kundennummer]\n,[Sortentext]\n,[SortentextAusl]\n,[letzte_Bestaetigung]\n,[vorletzte_Bestaetigung]\n,[letzter_Auftrag]\n,[Sortierkriterium]\n,[SortierRegion]\n,[Garniturschluessel]\n,[Anzahl_Klischees]\n,[InLManlegenkannweg]\n,[InLMangelegtkannweg]\n,[Importdurch]\n,[Sortierkriterium1]\n,[Sortierkriterium2]\n,[Sortierkriterium3]\n,[Sortierkriterium4]\n,[Sortierkriterium5]\n,[Sortierkriterium6]\n,[Periodenbedarf]\n,[Bedarfsperiode]\n,[FTKNummer]\n,[Seite]\n,[GarniturID]\n,[Freigabeindex]\n,[LMSStatus]\n,[VorProduktion]\n,[Layoutnummer]\n,[Computer]\n,[GrafikDatenpfad]\n,[Farbtoleranzkarte]\n,[Farbfibel]\n,[VSRSzusammen]\n,[Druckplatte]\n,[Artpro]\n,[DispoKunde]\n,[LMSUpdate]\n,[DVS]\n\n\n\n,[Hintergrundfarbe]\n\n\n\n,[GrafikIdentNr]\n\n\n\n,[Barcode]\n\n\n\n,[CENStufe]\n\n\n\n,[Ablageort]\n\n\n\n,[GewichtEtikett]\n\n\n\n,[KontraktNummer]\n\n\n\n,[PraegeZylID]\n\n\n\n,[WicklungSorte]\n\n\n\n,[Mindestbestand]\n\n\n\n,[CENStufe2D]\n\n\n\n,[LackfreiesFeld]\n\n\n\n,[KundenzertifikatErstellt]\n\n\n\n,[LackKlischee]\n\n\n\n,[KundenzertifikatNr]\n\n\n\n,[KundenzertifikatStatus]\n\n\n\n,[KundenzertifikatFreigabeDatum]\n\n\n\n,[KundeKategorieProjekt]\n\n\n\n,[KundeKategorieMarke]\n\n\n\n,[KundeKategorieProdukt]\n\n\n\n,[ColorManagementSystem]\n\n\n\n,[DVSKommentar]\n\n\n\n,[PruefmerkmalEindeutig]\n\n\n\n,[FarbreferenzSystemID]\n\n\n\n,[FarbreferenzVorlageTypID]\n\n\n\n,[PruefmerkmalArtID]\n\n\n\n,[WicklungID]\n\n\n\n,[CountryCodeID]\n\n\n\n,[Rollenkern]\n\n\n\n,[RollenkernID]\n\n\n\n,[Abrufware]\n\n\n\n,[CustomerBusinessLine]\n\n\n\n,[CustomerProductLine]\n\n\n\n,[CAN]\n\n \n\n      ,[MasterFile]\n\n \n\n      ,[DWRowVersion]\n\n \n\n      ,[CustomerProjectNameOrBrand]\n\n \n\n      ,[CustomerPortfolioID]\n\n \n\n      ,[Format]\n\n \n\n      ,[FormatAusl]\n\n \n\n      ,[Druckzylindernummer]\n\n \n\n      ,[Etiketten_je_Rolle]\n\n \n\n      ,[EtikRolle_genau]\n\n \n\n      ,[Etiketten_je_RolleAusl]\n\n \n\n      ,[Klebstoff]\n\n \n\n      ,[Klebstoff_genau]\n\n \n\n      ,[KlebstoffAusl]\n\n \n\n      ,[Rollenaussendurchmesser]\n\n \n\n      ,[Rollausdurchm_genau]\n\n \n\n      ,[RollenaussendurchmesserAusl]\n\n \n\n      ,[Traegerbahnbreite]\n\n \n\n      ,[Traegerbahn_genau]\n\n \n\n      ,[Wicklung]\n\n \n\n      ,[Wicklung_genau]\n\n \n\n      ,[WicklungAusl]\n\n \n\n      ,[Stammtext]\n\n \n\n      ,[StammtextAusl]\n\n \n\n      ,[Stamm_Kundennummer]\n\n \n\n      ,[Produkt]\n\n \n\n      ,[ProduktAusl]\n\n \n\n      ,[Farben_genau]\n\n \n\n      ,[Farbe]\n\n \n\n      ,[FarbeAusl]\n\n \n\n      ,[Material]\n\n \n\n      ,[Traeger_Genau]\n\n \n\n      ,[Traeger2_Genau]\n\n \n\n      ,[Kaschier_Genau]\n\n \n\n      ,[Heisspraeg_Genau]\n\n \n\n      ,[MaterialAusl]\n\n \n\n      ,[Zusatztext_Stanze]\n\n \n\n      ,[Stamm_Rollenkern]\n\n \n\n      ,[Rollenkern_genau]\n\n \n\n      ,[RollenkernAusl]\n\n \n\n      ,[StammStanze]\n\n \n\n      ,[Materialnummer]\n\n \n\n      ,[Preisstaffelnotiz]\n\n \n\n      ,[Kontrollstufe]\n\n \n\n      ,[Geschw_Text]\n\n \n\n      ,[Speedmaster]\n\n \n\n      ,[Motivwechselkosten]\n\n \n\n      ,[StammMaterialbreite]\n\n \n\n      ,[DV_Datum]\n\n \n\n      ,[StammStanze2]\n\n \n\n      ,[Digital]\n\n \n\n      ,[StammMaterialbreite2]\n\n \n\n      ,[Stanze]\n\n \n\n      ,[Stanze2]\n\n \n\n      ,[Hinweis_DV]\n\n \n\n      ,[Kalkulationsnummer]\n\n \n\n      ,[Sonderfarben_genau]\n\n \n\n      ,[Breite]\n\n \n\n      ,[Hoehe]\n\n \n\n      ,[AnzahlNutzen]\n\n \n\n      ,[Textwechsel]\n\n \n\n      ,[Farbwechsel]\n\n \n\n      ,[MatBreite]\n\n \n\n      ,[Maschine]\n\n \n\n      ,[Gewinnstufe]\n\n \n\n      ,[Gewinnstufe_selekt]\n\n \n\n      ,[DBGrad]\n\n \n\n      ,[Schwierigkeitsgrad]\n\n \n\n      ,[UVLack]\n\n \n\n      ,[Stamm_LackfreiesFeld]\n\n \n\n      ,[ProblematischesGitter]\n\n \n\n      ,[Wendevorrichtung]\n\n \n\n      ,[WendemitDruck]\n\n \n\n      ,[Blattware]\n\n \n\n      ,[Lochung]\n\n \n\n      ,[Perforation]\n\n \n\n      ,[Spezialkleber]\n\n \n\n      ,[GoldSilberlack]\n\n \n\n      ,[PreisMaterial]\n\n \n\n      ,[PreisKaschierfolie]\n\n \n\n      ,[PreisHeisspraegefolie]\n\n \n\n      ,[PreisTraeger2]\n\n \n\n      ,[Geschwindigkeit]\n\n \n\n      ,[PreisMaterialGesamt]\n\n \n\n      ,[Taktzeit]\n\n \n\n      ,[SpezifikationinSorte]\n\n \n\n      ,[Teilangebotsnummer]\n\n \n\n      ,[Angebotsnummer]\n\n \n\n      ,[PreiseGueltigMenge]\n\n \n\n      ,[PreiseGueltigVon]\n\n \n\n      ,[Expresskalkulation]\n\n \n\n      ,[PreiseGueltigBis]\n\n \n\n      ,[technHinweis]\n\n \n\n      ,[Wasserfarben]\n\n \n\n      ,[Gitterabzug]\n\n \n\n      ,[Passert]\n\n \n\n      ,[Farbeinh]\n\n \n\n      ,[Farbmenge]\n\n \n\n      ,[Bahntrennung]\n\n \n\n      ,[Kleberdruck]\n\n \n\n      ,[Flexprint]\n\n \n\n      ,[Gravur]\n\n \n\n      ,[MattLack]\n\n \n\n      ,[StanzeID]\n\n \n\n      ,[Stanze2ID]\n\n \n\n      ,[Stamm_Druckplatte]\n\n \n\n      ,[Einrichtekosten]\n\n \n\n      ,[MaschineID]\n\n \n\n      ,[PreisMaterialEuro]\n\n \n\n      ,[PreisKaschierfolieEuro]\n\n \n\n      ,[PreisHeisspraegefolieEuro]\n\n \n\n      ,[PreisMaterial2Euro]\n\n \n\n      ,[PreisMaterialGesamtEuro]\n\n \n\n      ,[EinrichtekostenEuro]\n\n \n\n      ,[MotivwechselkostenEuro]\n\n \n\n      ,[Stamm_ArtPro]\n\n \n\n      ,[Basisruestkosten]\n\n \n\n      ,[BasisruestkostenEuro]\n\n \n\n      ,[EinrichteWechselkosten]\n\n \n\n      ,[EinrichteWechselkostenEuro]\n\n \n\n      ,[Fortdruckkosten]\n\n \n\n      ,[FortdruckkostenEuro]\n\n \n\n      ,[Mindestbestellmenge]\n\n \n\n      ,[SortenProBestellung]\n\n \n\n      ,[FertigungenMax]\n\n \n\n      ,[Versandanweisung]\n\n \n\n      ,[Konfektionieranweisung]\n\n \n\n      ,[Qualitaetsanweisung]\n\n \n\n      ,[Produktionsanweisung]\n\n \n\n      ,[Grafikanweisung]\n\n \n\n      ,[Stamm_Ablageort]\n\n \n\n      ,[LackID]\n\n \n\n      ,[Lack2ID]\n\n \n\n      ,[QSProduktionsanweisung]\n\n \n\n      ,[Stamm_CENStufe]\n\n \n\n      ,[StarterFoil]\n\n \n\n      ,[Zusatzwerkzeug]\n\n \n\n      ,[TaktzeitGeprueft]\n\n \n\n      ,[PraegefolieMehrfachverwendung]\n\n \n\n      ,[DrucklaengeFlexo]\n\n \n\n      ,[DrucklaengeSieb]\n\n \n\n      ,[MaterialspezifikationStatus]\n\n \n\n      ,[Farbanforderungsstufe]\n\n \n\n      ,[GrundEtikettenNummer]\n\n \n\n      ,[TextWechselKostenEuro]\n\n \n\n      ,[FrachtkostenZuschlagEuro]\n\n \n\n      ,[TaktzeitDigital]\n\n \n\n      ,[TaktzeitDigitalGeprueft]\n\n \n\n      ,[FortdruckkostenTenderEuro]\n\n \n\n      ,[FarbanforderungsstufeRisiko]\n\n \n\n      ,[FarbanforderungsstufeKommentar]\n\n \n\n      ,[ProduktID]\n\n \n\n      ,[Kernstaerke]\n\n \n\n      ,[Kernbreite]\n\n \n\n      ,[Wicklungsstaerke]\n\n \n\n      ,[HundertProzentKontrolle]\n\n \n\n      ,[Messerart]\n\n \n\n      ,[NeutraleKonfektionierung]\n\n \n\n      ,[Musterangaben]\n\n \n\n      ,[IDAngebotPosition]\n\n \n\n      ,[Einrichtemeter]\n\n \n\n      ,[Einrichtemeter_geprueft]\n\n \n\n      ,[BasisruestkostenVorAenderungEuro]\n\n \n\n      ,[EinrichteWechselkostenVorAenderungEuro]\n ,[FortdruckkostenVorAenderungEuro]\n ,[EtikettJeRolleEinheit]\n,[Stamm_DWRowVersion]\n,getdate() as [insertedDate]\n,null as [IsApproved]\n ,null as [ApproverComments]\n,ERPDeliveryAddressStreet as ERPDeliveryAddressStreet\n,null as [New_Etikettennummer]\n,null as [New_Stammnummer]\n,keycolumn as KeyColumn\n,case when a.secondary_filepath is null and primary_component is not null and (a.DescriptionDQ not like '%Material Number%' or a.DescriptionDQ is null) then\ncase when errorjson is null then '[{\"ErrorType\":\"Artwork File\",\"Comment\":\"BASE Artwork File has not been uploaded in Source Folder\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Artwork File\",\"Comment\":\"BASE Artwork File has not been uploaded in Source Folder\"}]')\nend\nwhen a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0\nand (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then case\nwhen errorjson is null\nthen '[{\"ErrorType\":\"Master Data\",\"Comment\":\"Master Data isnt available in RAKO Database\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Master Data\",\"Comment\":\"Master Data isnt available in RAKO Database\"}]')\nend\nwhen a.primary_filepath is null and (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\ncase\nwhen errorjson is null\nthen '[{\"ErrorType\":\"Artwork File\",\"Comment\":\"BOOKLABEL Artwork File is missing in Source Folder\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Artwork File\",\"Comment\":\"BOOKLABEL Artwork File has not been uploaded in Source Folder\"}]')\nend\nelse errorjson end as ErrorJSON\n ,Id as Id\n\n \n\n      ,CustomerName as CustomerName\n\n \n\n      ,'FALSE' as IsProcessed\n\n \n\n      ,FolderHierarchy as FolderHierarchy\n\n \n\n      ,a.[PageCount] as PageCount\n\n \n\n      ,b.ProductName as ProductName\n\n \n\n        ,KonfPruefungErforderlich as KonfPruefungErforderlich\n\n \n\n      ,Stamm_FSC_IstZertifiziert\n\n \n\n      ,b.TripleARef\n\n ,TriggerTableID as TriggerTableID\n\n      ,case\n       when (a.secondary_filepath is null and primary_component is not null) or (a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0) then 1 else IsErrorDQ end as IsErrorDQ,\n       primary_filepath as primary_filepath,secondary_filepath as secondary_filepath\nfrom\n      app.tbl_aaa_master_customerorderdata_stg a\nleft join app.tbl_AAA_Orders_temp b on a.MaterialNumber = b.ArtikelNummerKunde and a.CustomerNumber=b.KundenNummer and a.PageCount = b.PageCount\nwhere a.modifiedTime > '@{activity('lk_incrementaldate_watermarktable').output.firstRow.last_modified_date}'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_asql_ArtworkFileMetadata1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_aaa_CustomerOrderData1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "lk_update_date_watermarktable",
+						"description": "Updating the watermark table.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "update app.tbl_watermarktable\r\nset last_modified_date = (select max(insertedDate) from app.tbl_aaa_CustomerOrderData)\r\nwhere table_name = 'app.tbl_aaa_CustomerOrderData';\r\nselect @@ROWCOUNT",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_AAA_OrderDetails_temp1",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "exe_aaa_orders_rako_db",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_aaa_Orders_Rako_db1",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "sp_auditlogs-stage_master_success",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_AuditLogStagetoMaster]",
+							"storedProcedureParameters": {
+								"Errors": {
+									"value": null,
+									"type": "String"
+								},
+								"MasterCount": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsCopied",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"PipelineEndTime": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineRunId": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineStartTime": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"StageCount": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsRead",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Status": {
+									"value": "Success",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_a4ltriplea",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "sp_auditlogs-stage_master_failure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dbo].[usp_AuditLogStagetoMaster]",
+							"storedProcedureParameters": {
+								"Errors": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.errors",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"MasterCount": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsCopied",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"PipelineEndTime": {
+									"value": {
+										"value": "@utcNow()",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"PipelineName": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineRunId": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"PipelineStartTime": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.executionDetails[0].start",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"StageCount": {
+									"value": {
+										"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsRead",
+										"type": "Expression"
+									},
+									"type": "Int32"
+								},
+								"Status": {
+									"value": "Failure",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_a4ltriplea",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "sp_SecondLevel_AuditLogs",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[app].[usp_AuditLogsStagetoMaster]",
+							"storedProcedureParameters": {
+								"filereportingmonth": {
+									"value": {
+										"value": "@pipeline().parameters.Month",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"filereportingyear": {
+									"value": {
+										"value": "@pipeline().parameters.Year",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"modifieddate": {
+									"value": {
+										"value": "@pipeline().parameters.PipelineStartTime",
+										"type": "Expression"
+									},
+									"type": "DateTime"
+								},
+								"pipelinename": {
+									"value": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"pipelinerunid": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_sql_a4ltriplea",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"PipelineStartTime": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:05Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_email')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lk_tbl_MainControlTable_TriggerTable",
+						"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT * FROM [app].[tbl_MainControlTable]\nWHERE CustomerNumber in (\nSELECT DISTINCT CustomerNumber from [app].[tbl_TriggerTable]\nWHERE Triggertime< '@{pipeline().parameters.PipelineStartTime}' and IsProcessed=1 and FileType='OrderFile' and FirstSanity_IsProcessed=1 and IsRejection_Processed=0 and PipelineEndTime is null)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_asql_maincontroltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "fe_Customer",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lk_tbl_MainControlTable_TriggerTable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lk_tbl_MainControlTable_TriggerTable').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "gm_check_rejectionfolderexistance",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_adls_rejections",
+											"type": "DatasetReference",
+											"parameters": {
+												"folderpath": {
+													"value": "@{item().CustomerName}/@{item().CustomerNumber}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-1/",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "BinaryReadSettings"
+										}
+									}
+								},
+								{
+									"name": "if_check_gm_result",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "gm_check_rejectionfolderexistance",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@activity('gm_check_rejectionfolderexistance').output.exists",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "exe_adf_child_email_eachcustomer",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_adf_child_email_eachcustomer",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"CustomerName": {
+															"value": "@item().CustomerName",
+															"type": "Expression"
+														},
+														"CustomerID": {
+															"value": "@item().CustomerNumber",
+															"type": "Expression"
+														},
+														"Year": {
+															"value": "@pipeline().parameters.Year",
+															"type": "Expression"
+														},
+														"Month": {
+															"value": "@pipeline().parameters.Month",
+															"type": "Expression"
+														},
+														"Week": {
+															"value": "@pipeline().parameters.Week",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.PipelineStartTime",
+															"type": "Expression"
+														},
+														"RejectionEmailIdTo": {
+															"value": "@item().RejectionEmailIdTO",
+															"type": "Expression"
+														},
+														"RejectionEmailIdCC": {
+															"value": "@item().RejectionEmailIdCC",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "sp_Triggertable_update",
+												"description": "Here we are updating Rejection_Isprocessed with1 if the rejection file is processed.",
+												"type": "SqlServerStoredProcedure",
+												"dependsOn": [
+													{
+														"activity": "exe_adf_child_email_eachcustomer",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"storedProcedureName": "[[app].[usp_Triggertable_Rejectionprocess_Update]",
+													"storedProcedureParameters": {
+														"CustomerName": {
+															"value": {
+																"value": "@item().CustomerName",
+																"type": "Expression"
+															},
+															"type": "String"
+														},
+														"Pipeline_starttime": {
+															"value": {
+																"value": "@pipeline().parameters.PipelineStartTime",
+																"type": "Expression"
+															},
+															"type": "String"
+														}
+													}
+												},
+												"linkedServiceName": {
+													"referenceName": "ls_sql_a4ltriplea",
+													"type": "LinkedServiceReference"
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"PipelineStartTime": {
+						"type": "String"
+					},
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"Week": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"week": {
+						"type": "String"
+					},
+					"time": {
+						"type": "String"
+					},
+					"date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:05Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_email_Level2')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lk_tbl_aaa_CustomerOrderData",
+						"description": "",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "With CTE as(\nSELECT DISTINCT CustomerNumber,CustomerName,FolderHierarchy FROM [app].[tbl_aaa_CustomerOrderData]\nWHERE ApprovalTimestamp BETWEEN (\n\t\t\tSELECT last_modified_date\n\t\t\tFROM app.tbl_watermarktable\n\t\t\tWHERE table_name = 'app.tbl_Order_Creation_Inputs'\n\t\t\t) and '@{pipeline().parameters.PipelineStartTime}' and IsApproved=0 \n)\nSELECT CTE.CustomerName,\nCTE.CustomerNumber,\nFolderHierarchy,\nMC.RejectionEmailIdTO,\nMC.RejectionEmailIdCC\nFROM CTE\nJOIN [app].[tbl_MainControlTable] MC\nON MC.CustomerNumber=CTE.CustomerNumber",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_asql_maincontroltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "fe_Customer",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lk_tbl_aaa_CustomerOrderData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lk_tbl_aaa_CustomerOrderData').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "gm_check_rejectionfolderexistance",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_adls_rejections",
+											"type": "DatasetReference",
+											"parameters": {
+												"folderpath": {
+													"value": "@{item().CustomerName}/@{item().CustomerNumber}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-2/",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "BinaryReadSettings"
+										}
+									}
+								},
+								{
+									"name": "if_check_gm_result",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "gm_check_rejectionfolderexistance",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@activity('gm_check_rejectionfolderexistance').output.exists",
+											"type": "Expression"
+										},
+										"ifTrueActivities": [
+											{
+												"name": "exe_adf_child_email_eachcustomer",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "pl_adf_child_email_eachcustomer_Level2",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"CustomerName": {
+															"value": "@item().CustomerName",
+															"type": "Expression"
+														},
+														"CustomerID": {
+															"value": "@item().CustomerNumber",
+															"type": "Expression"
+														},
+														"Year": {
+															"value": "@pipeline().parameters.Year",
+															"type": "Expression"
+														},
+														"Month": {
+															"value": "@pipeline().parameters.Month",
+															"type": "Expression"
+														},
+														"Week": {
+															"value": "@pipeline().parameters.Week",
+															"type": "Expression"
+														},
+														"PipelineStartTime": {
+															"value": "@pipeline().parameters.PipelineStartTime",
+															"type": "Expression"
+														},
+														"RejectionEmailIdTo": {
+															"value": "@item().RejectionEmailIdTO",
+															"type": "Expression"
+														},
+														"RejectionEmailIdCC": {
+															"value": "@item().RejectionEmailIdCC",
+															"type": "Expression"
+														},
+														"SourceFilePath": {
+															"value": "@item().FolderHierarchy",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"PipelineStartTime": {
+						"type": "String"
+					},
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"Week": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"week": {
+						"type": "String"
+					},
+					"time": {
+						"type": "String"
+					},
+					"date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:06Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_source_raw_prestage_stage')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "fe_MainControlTable",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "lk_tbl_Triggertable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('lk_tbl_Triggertable').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "sw_fileformat",
+									"description": "check the file type and switch and copy the data from source to raw accordingly",
+									"type": "Switch",
+									"dependsOn": [
+										{
+											"activity": "sv_filename",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@if(\n endswith(string(item().FileName),'csv'),\n'csv',\nif(\n    endswith(string(item().FileName),'pdf'),\n    'pdf',\nif(\n    endswith(string(item().FileName),'xml'),\n    'xml',\n    'xlsx'\n    )\n  )\n  )",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "csv",
+												"activities": [
+													{
+														"name": "cp_source_raw_csv",
+														"description": "Copying the File from Source to Raw with defined Folder structure -Dynamically.",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeEnd": {
+																		"value": "@pipeline().parameters.PipelineStartTime",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/OrderFiles')",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".csv"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_adls_source_csv",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	},
+																	"IsCSVHeaderAvailable": {
+																		"value": "@item().IsCSVHeaderAvailable",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_adls_raw_csv",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	},
+																	"filetype": "csv",
+																	"year": {
+																		"value": "@pipeline().parameters.Year",
+																		"type": "Expression"
+																	},
+																	"month": {
+																		"value": "@pipeline().parameters.Month",
+																		"type": "Expression"
+																	},
+																	"Customernumber": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"week": {
+																		"value": "@pipeline().parameters.week",
+																		"type": "Expression"
+																	}
+																}
+															}
+														]
+													},
+													{
+														"name": "expl_raw_prestage_csv",
+														"description": "copy data from raw to pretstage",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_csv",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "pl_adf_raw_prestage_stage_csv",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"source_folder": {
+																	"value": "@item().CustomerName",
+																	"type": "Expression"
+																},
+																"Filetype": "csv",
+																"Filename": {
+																	"value": "@item().FileName",
+																	"type": "Expression"
+																},
+																"CSVColumnMapping": {
+																	"value": "@item().CSVColumnMapping",
+																	"type": "Expression"
+																},
+																"Year": {
+																	"value": "@pipeline().parameters.Year",
+																	"type": "Expression"
+																},
+																"Month": {
+																	"value": "@pipeline().parameters.Month",
+																	"type": "Expression"
+																},
+																"week": {
+																	"value": "@pipeline().parameters.week",
+																	"type": "Expression"
+																},
+																"Customernumber": {
+																	"value": "@item().CustomerNumber",
+																	"type": "Expression"
+																},
+																"TriggerID": {
+																	"value": "@item().TID",
+																	"type": "Expression"
+																}
+															}
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_success_csv",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_csv",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": null,
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_csv').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "csv",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "success",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_failure",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_csv",
+																"dependencyConditions": [
+																	"Failed"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_csv').output.error",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_csv').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "csv",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "failure",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_update_Triggertable_csv",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "expl_raw_prestage_csv",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_Triggertable_Update]",
+															"storedProcedureParameters": {
+																"FileName": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Pipeline_starttime": {
+																	"value": {
+																		"value": "@pipeline().parameters.Pipelinestarttime",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													}
+												]
+											},
+											{
+												"value": "pdf",
+												"activities": [
+													{
+														"name": "cp_source_raw_pdf",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"wildcardFolderPath": {
+																		"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/OrderFiles')",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_adls_source_csv",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	},
+																	"IsCSVHeaderAvailable": "true"
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_adls_raw_csv",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	},
+																	"filetype": "pdf",
+																	"year": {
+																		"value": "@pipeline().parameters.Year",
+																		"type": "Expression"
+																	},
+																	"month": {
+																		"value": "@pipeline().parameters.Month",
+																		"type": "Expression"
+																	},
+																	"Customernumber": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"week": {
+																		"value": "@pipeline().parameters.week",
+																		"type": "Expression"
+																	}
+																}
+															}
+														]
+													},
+													{
+														"name": "expl_master_raw_prestage_pdf",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_pdf",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "pl_adf_master_raw_prestage_pdf",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"source_folder": {
+																	"value": "@item().CustomerName",
+																	"type": "Expression"
+																},
+																"Customerfolder": {
+																	"value": "@item().CustomerName",
+																	"type": "Expression"
+																},
+																"Pdfmapping": {
+																	"value": "@item().PDFMapping",
+																	"type": "Expression"
+																},
+																"FileName": {
+																	"value": "@item().FileName",
+																	"type": "Expression"
+																},
+																"FormRecognizerURL": {
+																	"value": "@concat('https://frc-aaa-dev-euw-1.cognitiveservices.azure.com/formrecognizer/documentModels/',item().FormRecogniserModelID,':analyze?api-version=2022-08-31')",
+																	"type": "Expression"
+																},
+																"FormRecognizerKey": {
+																	"value": "13dd1d54d2b045449b043cdc92ac6bb9",
+																	"type": "Expression"
+																},
+																"Year": {
+																	"value": "@pipeline().parameters.Year",
+																	"type": "Expression"
+																},
+																"Month": {
+																	"value": "@pipeline().parameters.Month",
+																	"type": "Expression"
+																},
+																"PipelineStartTime": {
+																	"value": "@pipeline().parameters.PipelineStartTime",
+																	"type": "Expression"
+																},
+																"Customernumber": {
+																	"value": "@item().CustomerNumber",
+																	"type": "Expression"
+																},
+																"week": {
+																	"value": "@pipeline().parameters.week",
+																	"type": "Expression"
+																},
+																"TriggerID": {
+																	"value": "@item().TID",
+																	"type": "Expression"
+																}
+															}
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_success_pdf",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_pdf",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": null,
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_pdf').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "pdf",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "success",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_failure_pdf",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_pdf",
+																"dependencyConditions": [
+																	"Failed"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_pdf').output.error",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_pdf').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "pdf",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "failure",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_update_Triggertable_pdf",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "expl_master_raw_prestage_pdf",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_Triggertable_Update]",
+															"storedProcedureParameters": {
+																"FileName": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Pipeline_starttime": {
+																	"value": {
+																		"value": "@pipeline().parameters.Pipelinestarttime",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													}
+												]
+											},
+											{
+												"value": "xml",
+												"activities": [
+													{
+														"name": "Wait1",
+														"type": "Wait",
+														"dependsOn": [],
+														"userProperties": [],
+														"typeProperties": {
+															"waitTimeInSeconds": 1
+														}
+													}
+												]
+											},
+											{
+												"value": "xlsx",
+												"activities": [
+													{
+														"name": "cp_source_raw_xlsx",
+														"description": "Copying the File from Source to Raw with defined Folder structure -Dynamically.",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "BinarySource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeEnd": {
+																		"value": "@pipeline().parameters.PipelineStartTime",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/OrderFiles')",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"deleteFilesAfterCompletion": false
+																},
+																"formatSettings": {
+																	"type": "BinaryReadSettings"
+																}
+															},
+															"sink": {
+																"type": "BinarySink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																}
+															},
+															"enableStaging": false
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_adls_source_xlsx",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_adls_raw_xlsx",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@item().CustomerName",
+																		"type": "Expression"
+																	},
+																	"filetype": "xlsx",
+																	"year": {
+																		"value": "@pipeline().parameters.Year",
+																		"type": "Expression"
+																	},
+																	"month": {
+																		"value": "@pipeline().parameters.Month",
+																		"type": "Expression"
+																	},
+																	"Customernumber": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"week": {
+																		"value": "@pipeline().parameters.week",
+																		"type": "Expression"
+																	}
+																}
+															}
+														]
+													},
+													{
+														"name": "expl_raw_prestage_xlsx",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_xlsx",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "pl_adf_raw_prestage_stage_xlsx",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"source_folder": {
+																	"value": "@item().CustomerName\n",
+																	"type": "Expression"
+																},
+																"Filetype": "xlsx",
+																"Filename": {
+																	"value": "@item().FileName",
+																	"type": "Expression"
+																},
+																"XLSXColumnMapping": {
+																	"value": "@item().XLSXColumnMapping",
+																	"type": "Expression"
+																},
+																"Year": {
+																	"value": "@pipeline().parameters.Year",
+																	"type": "Expression"
+																},
+																"Month": {
+																	"value": "@pipeline().parameters.Month",
+																	"type": "Expression"
+																},
+																"Customernumber": {
+																	"value": "@item().CustomerNumber",
+																	"type": "Expression"
+																},
+																"week": {
+																	"value": "@pipeline().parameters.week",
+																	"type": "Expression"
+																},
+																"Pipelinestarttime": {
+																	"value": "@pipeline().parameters.Pipelinestarttime",
+																	"type": "Expression"
+																},
+																"TriggerID": {
+																	"value": "@item().TID",
+																	"type": "Expression"
+																}
+															}
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_success_xlsx",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_xlsx",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": null,
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_xlsx').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "xlsx",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "success",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_auditlogs-source_raw_failure_xlsx",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "cp_source_raw_xlsx",
+																"dependencyConditions": [
+																	"Failed"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_AuditLogsSourceToRaw]",
+															"storedProcedureParameters": {
+																"CustomerNumber": {
+																	"value": {
+																		"value": "@item().CustomerNumber",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Errors": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_xlsx').output.value.error",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Filename_at_Raw": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"FileNameatSource": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineEndTime": {
+																	"value": {
+																		"value": "@utcNow()",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"PipelineName": {
+																	"value": {
+																		"value": "@pipeline().Pipeline",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineRunId": {
+																	"value": {
+																		"value": "@pipeline().RunId",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"PipelineStartTime": {
+																	"value": {
+																		"value": "@activity('cp_source_raw_xlsx').output.executionDetails[0].start",
+																		"type": "Expression"
+																	},
+																	"type": "DateTime"
+																},
+																"SourceFileType": {
+																	"value": "xlsx",
+																	"type": "String"
+																},
+																"Status": {
+																	"value": "failure",
+																	"type": "String"
+																},
+																"TriggerID": {
+																	"value": {
+																		"value": "@item().TID",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													},
+													{
+														"name": "sp_update_Triggertable_xlsx",
+														"type": "SqlServerStoredProcedure",
+														"dependsOn": [
+															{
+																"activity": "expl_raw_prestage_xlsx",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"storedProcedureName": "[[app].[usp_Triggertable_Update]",
+															"storedProcedureParameters": {
+																"FileName": {
+																	"value": {
+																		"value": "@item().FileName",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																},
+																"Pipeline_starttime": {
+																	"value": {
+																		"value": "@pipeline().parameters.Pipelinestarttime",
+																		"type": "Expression"
+																	},
+																	"type": "String"
+																}
+															}
+														},
+														"linkedServiceName": {
+															"referenceName": "ls_sql_a4ltriplea",
+															"type": "LinkedServiceReference"
+														}
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "sv_filename",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Filename",
+										"value": {
+											"value": "@item().FileName\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "lk_tbl_Triggertable",
+						"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select T.Id as TID,T.CustomerName as FolderName,max(Triggertime) as Triggertime,FileName,FileType,IsProcessed,T.CustomerNumber as TCustomerNumber,M.Id as MID,M.CustomerName as CustomerName,M.CustomerNumber as CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable from [app].[tbl_TriggerTable] AS T left join [app].[tbl_MainControlTable] AS M on T.CustomerNumber=M.CustomerNumber where t.Triggertime< '@{pipeline().parameters.Pipelinestarttime}' and IsProcessed=0 and FileType='OrderFile' and PipelineEndTime is null GROUP BY T.ID,T.CustomerName,FileName,FileType,IsProcessed,T.CustomerNumber,M.ID,M.CustomerName,M.CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable;\n\n",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_asql_maincontroltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "nb_startcluster",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Shared/Common_Functions/Common_Functions_DQ&DC"
+						},
+						"linkedServiceName": {
+							"referenceName": "AzureDatabricks1",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Pipelinestarttime": {
+						"type": "string"
+					},
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"week": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"PipelineStartTime": {
+						"type": "String"
+					},
+					"Filename": {
+						"type": "String"
+					},
+					"utcnow": {
+						"type": "String"
+					},
+					"pipeline_starttime": {
+						"type": "String"
+					},
+					"week": {
+						"type": "String"
+					},
+					"time": {
+						"type": "String"
+					},
+					"date": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:06Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_second_sanity_check')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "lk_error_flag_aaa_orders",
+						"description": "Updating app.tbl_aaa_customerorderdata_stg table with iserrordq, descriptiondq, ERPdeliveryAdrressStreet, ErrorJson for the records where modified time> last modified date that we got from the first lookup.\nUpdating app.tbl_aaa_customerorderdata table with Iserrordq, Descriptiondq, IsApproved as null, Modified date as getdate(), for the records where Isapproved = -1, and Approval time stamp is greater than last modofied date from the first lookup.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_customerorderdata_existancecheck",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "if exists(select 1 from app.tbl_AAA_Orders_existance_temp)\nupdate a\nset a.iserrordq = b.is_error,a.descriptiondq=b.error_description,a.ERPDeliveryAddressStreet= case when b.ERP_DeliveryAddressStreet = '' then null else ERP_DeliveryAddressStreet end \nfrom app.tbl_aaa_customerorderdata_stg a join app.tbl_AAA_Orders_existance_temp b \non a.CustomerNumber = b.Kundennummer and a.MaterialNumber = b.ArtikelNummerKunde and a.DeliveryAdressStreet = b.DeliveryAddressStreet\nand a.PurchaseOrder = b.PurchaseOrder and a.Item = b.Item\nwhere a.modifiedTime>\n'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nselect @@ROWCOUNT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "csvtoazuresqltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "lk_getdate_watermark",
+						"description": "Getting the last modified date and pipeline start time from the watermark table for the table: app.tbl_aaa_CustomerOrderData_stg",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select last_modified_date as last_modified_date,getdate() as pipeline_starttime from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData_stg'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "csvtoazuresqltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "lk_update_watermark",
+						"description": "Updating the Watermark table  for tbl_aaa_CustomerOrderData_stg with\nmax(Modified time) from tbl_aaa_CustomerOrderData_stg table. ",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "lk_aaa_master_customerorderdata_stg_update",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "update app.tbl_watermarktable\nset last_modified_date = (select coalesce(max(modifiedTime),'1900-01-01 00:00:00') from app.tbl_aaa_CustomerOrderData_stg)\nwhere table_name = 'app.tbl_aaa_CustomerOrderData_stg';\nselect 1",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "csvtoazuresqltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "exe_adf_pl_sanitycheck_2",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_artworkfile",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_sanitycheck_2",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Year": {
+									"value": "@pipeline().parameters.Year",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@pipeline().parameters.Month",
+									"type": "Expression"
+								},
+								"PipelineStartTime": {
+									"value": "@pipeline().parameters.PipelineStartTime",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "exe_adf_master_artworkfile",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "lk_error_flag_aaa_orders",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_artworkfile",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Pipleline_starttime": {
+									"value": "@pipeline().parameters.PipelineStartTime",
+									"type": "Expression"
+								},
+								"Year": {
+									"value": "@pipeline().parameters.Year",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@pipeline().parameters.Month",
+									"type": "Expression"
+								},
+								"week": {
+									"value": "@pipeline().parameters.Week",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "lk_aaa_master_customerorderdata_stg_update",
+						"description": "Updating the table app.tbl_aaa_master_customerorderdata_stg with the error json needed for front end display.",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_pl_sanitycheck_2",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "update app.tbl_aaa_master_customerorderdata_stg\nset errorjson = concat( '[' ,\ncase when descriptiondq like '%Delivery Address%' then concat('{\"ErrorType\":\"Shipping Address\",','\"Comment\":\"Delivery Address Street is mismatching with ERP System\"}',\ncase when descriptiondq like '%Material Number%' or descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Material Number%'  then concat('{\"ErrorType\":\"Material Number\",','\"Comment\":\"Material Number is missing in ERP System\"}',\ncase when descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Purchase Order%'  then concat('{\"ErrorType\":\"Purchase Order\",','\"Comment\":\"Purchase Order Item already exists in ERP\"}',case when descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Customer Number%'  then concat('{\"ErrorType\":\"Customer Number\",','\"Comment\":\"Customer Number is missing in ERP System\"}',case when descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Artwork File%' then concat('{\"ErrorType\":\"Artwork File\",','\"Comment\":\"BOOKLABEL & BASE Artwork File  is missing in ERP System\"}',case when descriptiondq like '%CustomerOrder%' then concat(',{\"ErrorType\":\"Partial Duplicate\"','\"Comment\":\"Order data loaded has duplicates records\"}') end) end,\n']') where iserrordq=1 and modifiedTime >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nupdate d\nset d.IsErrorDQ = coalesce(is_error,0),descriptiondq = case when coalesce(is_error,0) = 0 then null else error_description end,IsApproved = case when coalesce(is_error,0)= 0 then null else d.IsApproved end,ModifiedDate = getdate(),\nERPDeliveryAddressStreet = ERP_DeliveryAddressStreet,\nErrorJson = case when coalesce(is_error,0) = 1 then concat( '[' ,\ncase when error_description like '%Delivery Address%' then concat('{\"ErrorType\":\"Shipping Address\",','\"Comment\":\"Delivery Address Street is mismatching with ERP System\"}',\ncase when error_description like '%Material Number%' or descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%'  then  ',' end) end,\ncase when error_description like '%Material Number%'  then concat('{\"ErrorType\":\"Material Number\",','\"Comment\":\"Material Number is missing in ERP System\"}',\ncase when error_description like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Purchase Order%'  then concat('{\"ErrorType\":\"Purchase Order\",','\"Comment\":\"Purchase Order Item already exists in ERP\"}',case when descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Customer Number%'  then concat('{\"ErrorType\":\"Customer Number\",','\"Comment\":\"Customer Number is missing in ERP System\"}',case when descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Artwork File%' then concat('{\"ErrorType\":\"Artwork File\",','\"Comment\":\"Artwork File  is missing in ERP System\"}',case when descriptiondq like '%CustomerOrder%' then concat(',{\"ErrorType\":\"Partial Duplicate\"','\"Comment\":\"Order data loaded has duplicates records\"}') end) end,\n']') else null end\nfrom \napp.tbl_aaa_customerorderdata d left join app.tbl_AAA_Orders_existance_temp c\non d.CustomerNumber = c.Kundennummer and d.MaterialNumber = c.ArtikelNummerKunde and d.DeliveryAdressStreet = c.DeliveryAddressStreet\nand d.PurchaseOrder = c.PurchaseOrder and d.Item = c.Item\nwhere d.IsApproved = -1 and d.ApprovalTimestamp >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nselect @@ROWCOUNT",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "csvtoazuresqltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "cp_aaa_customerorderdata_stg_existance",
+						"description": "Getting the lastest/incremental  Materialnumber, Customernumber, Delivery address street, item, Purchase order data from app.tbl_aaa_customerorderdata_stg table and also getting the same fields from app.tbl_aaa_customerorderdata table where Isapproved= -1.\n\nLoading the above data into table : dbo.tbl_aaa_Orders_ExistanceCheck in the Rako label db.\n\nsource- Azure sql\nsink-Rako label db.",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "lk_getdate_watermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "select cast(CustomerNumber as int) as KundenNummer,MaterialNumber as ArtikelNummerKunde,DeliveryAdressStreet as DeliveryAdressStreet,PurchaseOrder as PurchaseOrder,cast(Item as int) as Item\nfrom app.tbl_aaa_customerorderdata_stg where modifiedTime >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}'\nunion\nselect CustomerNumber as KundenNummer,MaterialNumber as ArtikelNummerKunde,DeliveryAdressStreet as DeliveryAdessStreet,PurchaseOrder as PurchaseOrder,Item as Item\nfrom app.tbl_aaa_customerorderdata where ApprovalTimestamp >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}' and IsApproved = -1",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "SqlServerSink",
+								"preCopyScript": "truncate table dbo.tbl_aaa_Orders_ExistanceCheck",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "csvtoazuresqltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_rakolabel",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					},
+					{
+						"name": "cp_aaa_customerorderdata_existancecheck",
+						"description": "Doing the 2nd level existence check for parameters sent to Rako from dbo.tbl_aaa_Orders_ExistanceCheck, the output of the check is loaded into tbl_AAA_Orders_existance_temp table in Azure sql database.",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "cp_aaa_customerorderdata_stg_existance",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlServerSource",
+								"sqlReaderQuery": ";with cte as(\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Customer Number is not found in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.kunden_aaa_bkp b on a.KundenNummer = b.Kundennummer  where b.kundennummer is null\r\nunion\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet, a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Material Number is not found in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.tbltripleaarticleref_aaa_bkp c on c.TripleARef = a.ArtikelNummerKunde and left(c.etikettennummer,4) = a.kundennummer where c.TripleARef is null\r\nunion\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Delivery Address Street mismatching with ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.adressen_aaa_bkp d on d.kundennummer = a.kundennummer and d.IsActive= '-1' and d.Adressart = '1'\r\nwhere (a.DeliveryAdressStreet <> d.Strasse or d.kundennummer is null)\r\nunion\r\nselect distinct a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Purchase Order already exists in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\njoin (\r\nSELECT T.Bestellnummer_Kunde,T.BestellnummerPosition,R.ArtikelnummerKunde FROM [RakoLabel].[dbo].[Teilauftraege_aaa_bkp] T\r\nJOIN \r\n[RakoLabel].[dbo].[Rechnungspositionen_aaa_bkp] R\r\nON T.Teilauftragsnummer=R.Teilauftragsnummer\r\n)b on a.PurchaseOrder = b.Bestellnummer_Kunde and a.Item = b.BestellnummerPosition and a.ArtikelNummerKunde = b.ArtikelnummerKunde)\r\n,cte1 as(select KundenNummer,ArtikelNummerKunde,DeliveryAdressStreet,Item,PurchaseOrder,[is_error],\r\nstring_agg(error_description,';') as error_description from cte\r\ngroup by KundenNummer,ArtikelNummerKunde,DeliveryAdressStreet,Item,is_error,PurchaseOrder)\r\nselect \r\n c1.KundenNummer,c1.ArtikelNummerKunde,c1.DeliveryAdressStreet as DeliveryAddressStreet ,c1.Item,c1.PurchaseOrder,is_error,c1.error_description,\r\n (case when c1.error_description like '%Delivery Address%' then strasse else null end) as ERP_DeliveryAddressStreet\r\n from cte1 c1\r\n left join dbo.adressen_aaa_bkp d on d.kundennummer = c1.kundennummer and IsActive= '-1' and Adressart = '1';\r\n select @@ROWCOUNT",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "truncate table app.tbl_AAA_Orders_existance_temp",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_rakolabel",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_AAA_Orders_existance",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"Year": {
+						"type": "string"
+					},
+					"Month": {
+						"type": "string"
+					},
+					"PipelineStartTime": {
+						"type": "string"
+					},
+					"Week": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T14:47:05Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_copydata_source_to_raw_adls')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup INTO CONTROLTABLE",
+						"description": " up into control table -Control_table_TripleA for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup INTO CONTROLTABLE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup INTO CONTROLTABLE').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of source",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_source_triplea_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"foldername": {
+													"value": "@item().Customername",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"itemName",
+											"childItems",
+											"lastModified"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of source",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_childpipeline_source_raw",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"childitems": {
+												"value": "@activity('Get Metadata of source').output.childItems",
+												"type": "Expression"
+											},
+											"source_folder_name": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Pipeline_source_to_raw"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:16Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Graphicfile_master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup into control table",
+						"description": "Look up into control table for customer name",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup into control table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup into control table').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of each customer folder",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DelimitedText1",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(item().Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','csv','/','Prestage_csvfiles')",
+													"type": "Expression"
+												},
+												"Filename": "*"
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of each customer folder",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "graphicfile_child_1",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"Childitems": {
+												"value": "@activity('Get Metadata of each customer folder').output.childItems",
+												"type": "Expression"
+											},
+											"Customername": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Graphicfile"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-30T18:54:57Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/graphicfile_child_1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup into Control Table",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select * from [dbo].[Control_table_TripleA]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup into Control Table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup into Control Table').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata1",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "Json2",
+											"type": "DatasetReference",
+											"parameters": {
+												"Customerfolder": {
+													"value": "@concat(item().Customername,'/',substring(utcnow(),0,4),'/',substring(utcnow(),5,2),'/','pdf')\n\n",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"childItems"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "JsonReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "child",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"getmetadatoutput": {
+												"value": "@activity('Get Metadata1').output.childItems",
+												"type": "Expression"
+											},
+											"Customerfolder": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											},
+											"Pdfmapping": {
+												"value": "@item().pdf_mapping",
+												"type": "Expression"
+											},
+											"FormRecognizerURL": {
+												"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+												"type": "Expression"
+											},
+											"FormRecognizerKey": {
+												"value": "0987f7cf06fe4ff0a5f07ffaeb35986f",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Pipeline _PDF_dynamic"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T10:46:50Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_child_postUI_approvals')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "sv_pl_starttime",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipeline_starttime",
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "sv_year",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Year",
+							"value": {
+								"value": "@substring(utcnow(),0,4)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "sv_month",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Month",
+							"value": {
+								"value": "@substring(utcnow(),5,2)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "sv_week",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "week",
+							"value": {
+								"value": "@if(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),7),'week-1',\n\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),14),'week-2',\n\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),21),'week-3',\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),28),'week-4','week-5'\n\n    )\n\n    )\n\n    )\n\t)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "exe_adf_master_email",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_rejected_data_injestion",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_email_Level2",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								},
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"Week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "exe_adf_order_creation_input",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "sv_pl_starttime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_week",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_order_creation_input",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"pipeline_starttime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "exe_rejected_data_injestion",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "sv_year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_pl_starttime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_rejected_data_injestion_v1",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								},
+								"pipeline_starttime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "lk_update_watermark",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_email",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "exe_adf_order_creation_input",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "update app.tbl_watermarktable\nset last_modified_date = '@{variables('pipeline_starttime')}' where table_name = 'app.tbl_Order_Creation_Inputs';\nselect 1",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_AAA_OrderDetails_temp",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"Year": {
+						"type": "String"
+					},
+					"Month": {
+						"type": "String"
+					},
+					"week": {
+						"type": "String"
+					},
+					"pipeline_starttime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_email_Level2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_child_preUI')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "sv_pl_starttime",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipeline_starttime",
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "exe_adf_master_pipeline",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "sv_pl_starttime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_month",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "sv_week",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_source_raw_prestage_stage",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Pipelinestarttime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								},
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "sv_year",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Year",
+							"value": {
+								"value": "@substring(pipeline().TriggerTime,0,4)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "sv_month",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Month",
+							"value": {
+								"value": "@substring(pipeline().TriggerTime,5,2)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "exe_adf_Sanitycheck_1",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_sanitycheck_1",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								},
+								"week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Fail1",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_Sanitycheck_1",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "Sanity check-1 failed",
+							"errorCode": "100"
+						}
+					},
+					{
+						"name": "exe_adf_master_email",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_Sanitycheck_1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_email",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								},
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"Week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "exe_adf_existance_checks",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_Sanitycheck_1",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_second_sanity_check",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								},
+								"Week": {
+									"value": "@variables('week')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "sv_week",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "week",
+							"value": {
+								"value": "@if(\n\n    lessOrEquals(int(substring(pipeline().TriggerTime,8,2)),7),'week-1',\n\nif(\n\n    lessOrEquals(int(substring(pipeline().TriggerTime,8,2)),14),'week-2',\n\nif(\n\n    lessOrEquals(int(substring(pipeline().TriggerTime,8,2)),21),'week-3',\nif(\n\n    lessOrEquals(int(substring(pipeline().TriggerTime,8,2)),28),'week-4','week-5'\n\n    )\n\n    )\n\n    )\n\t)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Fail2",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "Ingestion pipeline failed",
+							"errorCode": "101"
+						}
+					},
+					{
+						"name": "exe_adf_master_aaa_customerorderdata",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_existance_checks",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_aaa_CustomerOrderData_load",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"Year": {
+									"value": "@variables('Year')",
+									"type": "Expression"
+								},
+								"Month": {
+									"value": "@variables('Month')",
+									"type": "Expression"
+								},
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "exe_adf_UpdatePipelineEndTime",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_aaa_customerorderdata",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_UpdatePipelineEndTime",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"PipelineStartTime": {
+									"value": "@variables('pipeline_starttime')",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"pl_starttime": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Year": {
+						"type": "String"
+					},
+					"Month": {
+						"type": "String"
+					},
+					"week": {
+						"type": "String"
+					},
+					"Filename": {
+						"type": "String"
+					},
+					"pipeline_starttime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-08-07T17:00:04Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_source_raw_prestage_stage')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_email')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_second_sanity_check')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_aaa_CustomerOrderData_load')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/child_source_raw_prestage')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ForEach file",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@array(pipeline().parameters.childitems)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Switch1",
+									"description": "check the file type and switch and copy the data from source to raw accordingly",
+									"type": "Switch",
+									"dependsOn": [
+										{
+											"activity": "Set variable1",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"on": {
+											"value": "@if(\n contains(string(item().name),'csv'),\n'csv',\nif(\n    contains(string(item().name),'pdf'),\n    'pdf',\n    'xml'\n    )\n  )",
+											"type": "Expression"
+										},
+										"cases": [
+											{
+												"value": "csv",
+												"activities": [
+													{
+														"name": "Copy csv file",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "csv"
+																}
+															}
+														]
+													},
+													{
+														"name": "Execute csv pipeline",
+														"description": "copy data from raw to pretstage",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "Copy csv file",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "pl_csv",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {
+																"source_folder": {
+																	"value": "@pipeline().parameters.source_folder_name",
+																	"type": "Expression"
+																},
+																"Filetype": "csv",
+																"Filename": {
+																	"value": "@item().name",
+																	"type": "Expression"
+																}
+															}
+														}
+													}
+												]
+											},
+											{
+												"value": "pdf",
+												"activities": [
+													{
+														"name": "Copy data pdf",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "pdf"
+																}
+															}
+														]
+													},
+													{
+														"name": "Execute PDF Pipeline",
+														"type": "ExecutePipeline",
+														"dependsOn": [
+															{
+																"activity": "Copy data pdf",
+																"dependencyConditions": [
+																	"Succeeded"
+																]
+															}
+														],
+														"userProperties": [],
+														"typeProperties": {
+															"pipeline": {
+																"referenceName": "master",
+																"type": "PipelineReference"
+															},
+															"waitOnCompletion": true,
+															"parameters": {}
+														}
+													}
+												]
+											},
+											{
+												"value": "xml",
+												"activities": [
+													{
+														"name": "Copy data xml",
+														"type": "Copy",
+														"dependsOn": [],
+														"policy": {
+															"timeout": "0.12:00:00",
+															"retry": 0,
+															"retryIntervalInSeconds": 30,
+															"secureOutput": false,
+															"secureInput": false
+														},
+														"userProperties": [],
+														"typeProperties": {
+															"source": {
+																"type": "DelimitedTextSource",
+																"storeSettings": {
+																	"type": "AzureBlobFSReadSettings",
+																	"recursive": true,
+																	"modifiedDatetimeStart": {
+																		"value": "@addhours(string(utcnow()),-3)",
+																		"type": "Expression"
+																	},
+																	"modifiedDatetimeEnd": {
+																		"value": "@utcnow()",
+																		"type": "Expression"
+																	},
+																	"wildcardFolderPath": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"wildcardFileName": {
+																		"value": "@item().name",
+																		"type": "Expression"
+																	},
+																	"enablePartitionDiscovery": false
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextReadSettings"
+																}
+															},
+															"sink": {
+																"type": "DelimitedTextSink",
+																"storeSettings": {
+																	"type": "AzureBlobFSWriteSettings"
+																},
+																"formatSettings": {
+																	"type": "DelimitedTextWriteSettings",
+																	"quoteAllText": true,
+																	"fileExtension": ".txt"
+																}
+															},
+															"enableStaging": false,
+															"translator": {
+																"type": "TabularTranslator",
+																"typeConversion": true,
+																"typeConversionSettings": {
+																	"allowDataTruncation": true,
+																	"treatBooleanAsNumber": false
+																}
+															}
+														},
+														"inputs": [
+															{
+																"referenceName": "ds_source_triplea_adls",
+																"type": "DatasetReference",
+																"parameters": {
+																	"foldername": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	}
+																}
+															}
+														],
+														"outputs": [
+															{
+																"referenceName": "ds_raw_triplea",
+																"type": "DatasetReference",
+																"parameters": {
+																	"source_folder": {
+																		"value": "@pipeline().parameters.source_folder_name",
+																		"type": "Expression"
+																	},
+																	"filetype": "xml"
+																}
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								},
+								{
+									"name": "Set variable1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "filename",
+										"value": {
+											"value": "@item().name",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"childitems": {
+						"type": "string"
+					},
+					"source_folder_name": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "soure_raw_prestage(csv,pdf)"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T12:30:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_postUI_approvals')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "exe_adf_master_pipeline_postUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_child_postUI_approvals",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "wb_pipelinesuccess_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_postUI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelinesuccess_postUI/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=Fp-ZyEg7Z_9klbQoIBhHo_V61390eee3l3j3qfrughQ",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "wb_pipelinefailure_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_postUI",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelineFailure/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=b5CJOeqZcyEjbwEi6sZ2GZv7YK7LpHKOjGHc-EQaNec",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Final Pipeline/Master Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_child_postUI_approvals')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_pre_UI')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "sv_pl_starttime",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipeline_starttime",
+							"value": {
+								"value": "@pipeline().TriggerTime",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "lk_tbl_Triggertable",
+						"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "sv_pl_starttime",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "IF EXISTS\n(\nselect T.Id as TID,T.CustomerName as FolderName,max(Triggertime) as Triggertime,FileName,FileType,IsProcessed,T.CustomerNumber as TCustomerNumber,M.Id as MID,M.CustomerName as CustomerName,M.CustomerNumber as CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable from [app].[tbl_TriggerTable] AS T left join [app].[tbl_MainControlTable] AS M on T.CustomerNumber=M.CustomerNumber where t.Triggertime< '@{variables('pipeline_starttime')}' and IsProcessed=0 and FileType='OrderFile' and PipelineEndTime is null GROUP BY T.ID,T.CustomerName,FileName,FileType,IsProcessed,T.CustomerNumber,M.ID,M.CustomerName,M.CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable\n)\nSELECT 'True';\nELSE\nSELECT 'False'",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_asql_maincontroltable",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": true
+						}
+					},
+					{
+						"name": "If Condition",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "lk_tbl_Triggertable",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(string(activity('lk_tbl_Triggertable').output.firstRow),'True')",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Wait2",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							],
+							"ifTrueActivities": [
+								{
+									"name": "exe_adf_preUI_child",
+									"type": "ExecutePipeline",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "pl_adf_child_preUI",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"pl_starttime": {
+												"value": "@variables('pipeline_starttime')",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"pipeline_starttime": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_child_preUI')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Master_source_raw_prestage')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup INTO CONTROLTABLE",
+						"description": " up into control table -Control_table_TripleA for source folder name which is the customername",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_Triplea",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach1",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup INTO CONTROLTABLE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup INTO CONTROLTABLE').output.value",
+								"type": "Expression"
+							},
+							"isSequential": false,
+							"activities": [
+								{
+									"name": "Get Metadata of source",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "ds_source_triplea_adls",
+											"type": "DatasetReference",
+											"parameters": {
+												"foldername": {
+													"value": "@item().Customername",
+													"type": "Expression"
+												}
+											}
+										},
+										"fieldList": [
+											"itemName",
+											"childItems",
+											"lastModified"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Execute Pipeline1",
+									"type": "ExecutePipeline",
+									"dependsOn": [
+										{
+											"activity": "Get Metadata of source",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"pipeline": {
+											"referenceName": "child_source_raw_prestage",
+											"type": "PipelineReference"
+										},
+										"waitOnCompletion": true,
+										"parameters": {
+											"childitems": {
+												"value": "@activity('Get Metadata of source').output.childItems",
+												"type": "Expression"
+											},
+											"source_folder_name": {
+												"value": "@item().Customername",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "soure_raw_prestage(csv,pdf)"
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-05-28T12:07:03Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/child_source_raw_prestage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_preUI')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "exe_adf_master_pipeline_preUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_pre_UI",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "wb_pipelinesuccess_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_preUI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelinecomplete/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=1fTPFOE63huyqdMTntICdmHsVhsLEMgIz_MNc3-Rfjo",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "wb_pipelinefailure_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_preUI",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelineFailure/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=b5CJOeqZcyEjbwEi6sZ2GZv7YK7LpHKOjGHc-EQaNec",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"lk": {
+						"type": "String"
+					},
+					"lk1": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Final Pipeline/Master Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_pre_UI')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "exe_pl_master_preUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_preUI",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exe_pl_master_postUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_pl_master_preUI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_postUI_approvals",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "Final Pipeline/Master Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_preUI')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_postUI_approvals')]"
+			]
+		}
+	]
+}
