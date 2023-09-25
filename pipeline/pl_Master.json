@@ -1,0 +1,44 @@
+{
+	"name": "pl_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "exe_pl_master_preUI",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_master_preUI",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "exe_pl_master_postUI",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exe_pl_master_preUI",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_master_postUI_approvals",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "Final Pipeline/Master Pipelines"
+		},
+		"annotations": []
+	}
+}

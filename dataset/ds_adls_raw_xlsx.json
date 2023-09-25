@@ -1,0 +1,41 @@
+{
+	"name": "ds_adls_raw_xlsx",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"source_folder": {
+				"type": "string"
+			},
+			"filetype": {
+				"type": "string"
+			},
+			"year": {
+				"type": "String"
+			},
+			"month": {
+				"type": "String"
+			},
+			"Customernumber": {
+				"type": "String"
+			},
+			"week": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@concat(dataset().source_folder,'/',dataset().Customernumber,'/',dataset().year,'/',dataset().month,'/',dataset().week,'/',dataset().filetype,'/')",
+					"type": "Expression"
+				},
+				"fileSystem": "raw"
+			}
+		}
+	}
+}

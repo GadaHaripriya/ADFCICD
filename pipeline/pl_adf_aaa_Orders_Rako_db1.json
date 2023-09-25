@@ -1,0 +1,186 @@
+{
+	"name": "pl_adf_aaa_Orders_Rako_db1",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_Update_WatermarkTable",
+				"description": "Updating Watermark table with last modified date for the table app.tbl_aaa_orders_temp.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "lk_Processed_AAA_Orders",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "if exists(select 1 from app.tbl_AAA_Orders_temp)\nupdate app.tbl_watermarktable\nset last_modified_date = (\nselect max(modified_timestamp) from app.tbl_aaa_orders_temp) where table_name = 'app.tbl_aaa_orders_temp';\nselect @@ROWCOUNT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable1",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "cp_aaa_customerorderdata_rako",
+				"description": "load the Customernumber and Material number from  Azure sql -app.[tbl_aaa_master_customerorderdata_stg] table to Rako label db - dbo.tbl_aaa_input_orders table.",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select distinct CustomerNumber as KundenNummer,MaterialNumber as ArtikelNummerKunde,PageCount from app.[tbl_aaa_master_customerorderdata_stg] where modifiedTime >\n(select coalesce(last_modified_date,'1900-01-01 00:00:00') from app.tbl_watermarktable where table_name= 'app.tbl_aaa_CustomerOrderData')\nand (descriptiondq not like '%Material Number%' or\ndescriptiondq not like '%Artwork%' or descriptiondq is null)",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlServerSink",
+						"preCopyScript": "truncate table dbo.tbl_aaa_input_orders",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_rakolabel_input",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "cp_Rako_aaa_Orders_Temp",
+				"description": "Joining dbo.tbl_aaa_input_orders with Sorten and Stamm tables in the Rakolabel  db on the condition and loading the data into  Azure sql table : app.tbl_AAA_orders_temp",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_customerorderdata_rako",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": "select distinct a.[Etikettennummer]\n      ,[Aenderungsindex]\n      ,a.[ArtikelnummerKunde]\n      ,a.[Stammnummer]\n      ,a.[Kundennummer]\n      ,[Sortentext]\n      ,[SortentextAusl]\n      ,[letzte_Bestaetigung]\n      ,[vorletzte_Bestaetigung]\n      ,[letzter_Auftrag]\n      ,[Sortierkriterium]\n      ,[SortierRegion]\n      ,[Garniturschluessel]\n      ,[Anzahl_Klischees]\n      ,[InLManlegenkannweg]\n      ,[InLMangelegtkannweg]\n      ,[Importdurch]\n      ,[Sortierkriterium1]\n      ,[Sortierkriterium2]\n      ,[Sortierkriterium3]\n      ,[Sortierkriterium4]\n      ,[Sortierkriterium5]\n      ,[Sortierkriterium6]\n      ,[Periodenbedarf]\n      ,[Bedarfsperiode]\n      ,[FTKNummer]\n      ,[Seite]\n      ,[GarniturID]\n      ,[Freigabeindex]\n      ,[LMSStatus]\n      ,[VorProduktion]\n      ,[Layoutnummer]\n      ,[Computer]\n      ,[GrafikDatenpfad]\n      ,[Farbtoleranzkarte]\n      ,[Farbfibel]\n      ,[VSRSzusammen]\n      ,a.[Druckplatte]\n      ,a.[Artpro]\n      ,[DispoKunde]\n      ,[LMSUpdate]\n      ,[DVS]\n      ,[Hintergrundfarbe]\n      ,[GrafikIdentNr]\n      ,[Barcode]\n      ,a.[CENStufe]\n      ,a.[Ablageort]\n      ,[GewichtEtikett]\n      ,[KontraktNummer]\n      ,[PraegeZylID]\n      ,[WicklungSorte]\n      ,[Mindestbestand]\n      ,[CENStufe2D]\n      ,a.[LackfreiesFeld]\n      ,[KundenzertifikatErstellt]\n      ,[LackKlischee]\n      ,[KundenzertifikatNr]\n      ,[KundenzertifikatStatus]\n      ,[KundenzertifikatFreigabeDatum]\n      ,[KundeKategorieProjekt]\n      ,[KundeKategorieMarke]\n      ,[KundeKategorieProdukt]\n      ,[ColorManagementSystem]\n      ,[DVSKommentar]\n      ,[PruefmerkmalEindeutig]\n      ,[FarbreferenzSystemID]\n      ,[FarbreferenzVorlageTypID]\n      ,[PruefmerkmalArtID]\n      ,[WicklungID]\n      ,[CountryCodeID]\n      ,a.[Rollenkern]\n      ,[RollenkernID]\n      ,[Abrufware]\n      ,[CustomerBusinessLine]\n      ,[CustomerProductLine]\n      ,[CAN]\n      ,[MasterFile]\n      ,a.[DWRowVersion]\n      ,[CustomerProjectNameOrBrand]\n      ,[CustomerPortfolioID]\n,[Format]\n      ,[FormatAusl]\n      ,[Druckzylindernummer]\n      ,[Etiketten_je_Rolle]\n      ,[EtikRolle_genau]\n      ,[Etiketten_je_RolleAusl]\n      ,[Klebstoff]\n      ,[Klebstoff_genau]\n      ,[KlebstoffAusl]\n      ,[Rollenaussendurchmesser]\n      ,[Rollausdurchm_genau]\n      ,[RollenaussendurchmesserAusl]\n      ,[Traegerbahnbreite]\n      ,[Traegerbahn_genau]\n      ,[Wicklung]\n      ,[Wicklung_genau]\n      ,[WicklungAusl]\n      ,[Stammtext]\n      ,[StammtextAusl]\n      ,b.[Kundennummer] as Stamm_Kundennummer\n      ,b.[Produkt]\n      ,[ProduktAusl]\n      ,[Farben_genau]\n      ,[Farbe]\n      ,[FarbeAusl]\n      ,[Material]\n      ,[Traeger_Genau]\n      ,[Traeger2_Genau]\n      ,[Kaschier_Genau]\n      ,[Heisspraeg_Genau]\n      ,[MaterialAusl]\n      ,[Zusatztext_Stanze]\n      ,b.[Rollenkern] as Stamm_Rollenkern\n      ,[Rollenkern_genau]\n      ,[RollenkernAusl]\n      ,[StammStanze]\n      ,[Materialnummer]\n      ,cast([Preisstaffelnotiz] as nvarchar(max)) as Preisstaffelnotiz\n      ,[Kontrollstufe]\n      ,[Geschw_Text]\n      ,[Speedmaster]\n      ,[Motivwechselkosten]\n      ,[StammMaterialbreite]\n      ,[DV_Datum]\n      ,[StammStanze2]\n      ,[Digital]\n      ,[StammMaterialbreite2]\n      ,[Stanze]\n      ,[Stanze2]\n      ,[Hinweis_DV]\n      ,[Kalkulationsnummer]\n      ,[Sonderfarben_genau]\n      ,[Breite]\n      ,[Hoehe]\n      ,[AnzahlNutzen]\n      ,[Textwechsel]\n      ,[Farbwechsel]\n      ,[MatBreite]\n      ,[Maschine]\n      ,[Gewinnstufe]\n      ,[Gewinnstufe_selekt]\n      ,[DBGrad]\n      ,[Schwierigkeitsgrad]\n      ,[UVLack]\n      ,b.[LackfreiesFeld] as Stamm_LackfreiesFeld\n      ,[ProblematischesGitter]\n      ,[Wendevorrichtung]\n      ,[WendemitDruck]\n      ,[Blattware]\n      ,[Lochung]\n      ,[Perforation]\n      ,[Spezialkleber]\n      ,[GoldSilberlack]\n      ,[PreisMaterial]\n      ,[PreisKaschierfolie]\n      ,[PreisHeisspraegefolie]\n      ,[PreisTraeger2]\n      ,[Geschwindigkeit]\n      ,[PreisMaterialGesamt]\n      ,[Taktzeit]\n      ,[SpezifikationinSorte]\n      ,[Teilangebotsnummer]\n      ,[Angebotsnummer]\n      ,[PreiseGueltigMenge]\n      ,[PreiseGueltigVon]\n      ,[Expresskalkulation]\n      ,[PreiseGueltigBis]\n      ,cast([technHinweis] as nvarchar(max)) as technHinweis\n      ,[Wasserfarben]\n      ,[Gitterabzug]\n      ,[Passert]\n      ,[Farbeinh]\n      ,[Farbmenge]\n      ,[Bahntrennung]\n      ,[Kleberdruck]\n      ,[Flexprint]\n      ,[Gravur]\n      ,[MattLack]\n      ,[StanzeID]\n      ,[Stanze2ID]\n      ,b.[Druckplatte] as Stamm_Druckplatte\n      ,[Einrichtekosten]\n      ,[MaschineID]\n      ,[PreisMaterialEuro]\n      ,[PreisKaschierfolieEuro]\n      ,[PreisHeisspraegefolieEuro]\n      ,[PreisMaterial2Euro]\n      ,[PreisMaterialGesamtEuro]\n      ,[EinrichtekostenEuro]\n      ,[MotivwechselkostenEuro]\n      ,b.[ArtPro] as Stamm_ArtPro\n      ,[Basisruestkosten]\n      ,[BasisruestkostenEuro]\n      ,[EinrichteWechselkosten]\n      ,[EinrichteWechselkostenEuro]\n      ,[Fortdruckkosten]\n      ,[FortdruckkostenEuro]\n      ,[Mindestbestellmenge]\n      ,[SortenProBestellung]\n      ,[FertigungenMax]\n      ,[Versandanweisung]\n      ,[Konfektionieranweisung]\n      ,[Qualitaetsanweisung]\n      ,[Produktionsanweisung]\n      ,[Grafikanweisung]\n      ,b.[Ablageort] as Stamm_Ablageort\n      ,[LackID]\n      ,[Lack2ID]\n      ,[QSProduktionsanweisung]\n      ,b.[CENStufe] as Stamm_CENStufe\n      ,[StarterFoil]\n      ,[Zusatzwerkzeug]\n      ,[TaktzeitGeprueft]\n      ,[PraegefolieMehrfachverwendung]\n      ,[DrucklaengeFlexo]\n      ,[DrucklaengeSieb]\n      ,[MaterialspezifikationStatus]\n      ,[Farbanforderungsstufe]\n      ,[GrundEtikettenNummer]\n      ,[TextWechselKostenEuro]\n      ,[FrachtkostenZuschlagEuro]\n      ,[TaktzeitDigital]\n      ,[TaktzeitDigitalGeprueft]\n      ,[FortdruckkostenTenderEuro]\n      ,[FarbanforderungsstufeRisiko]\n      ,[FarbanforderungsstufeKommentar]\n      ,[ProduktID]\n      ,[Kernstaerke]\n      ,[Kernbreite]\n      ,[Wicklungsstaerke]\n      ,[HundertProzentKontrolle]\n      ,[Messerart]\n      ,[NeutraleKonfektionierung]\n      ,[Musterangaben]\n      ,[IDAngebotPosition]\n      ,[Einrichtemeter]\n      ,[Einrichtemeter_geprueft]\n      ,[BasisruestkostenVorAenderungEuro]\n      ,[EinrichteWechselkostenVorAenderungEuro]\n      ,[FortdruckkostenVorAenderungEuro]\n      ,[EtikettJeRolleEinheit]\n      ,b.[DWRowVersion] as Stamm_DWRowVersion\n       ,KonfPruefungErforderlich as KonfPruefungErforderlich\n       ,b.FSC_IstZertifiziert as Stamm_FSC_IstZertifiziert \n,case when d.Produkttyp = 1 AND d.Bezeichnung_Lage = 'Booklabel' then 'BOOKLET' else null end as primary_component\n,case when e.produkttyp = 2 then 'BASE' else null end as secondary_component\n,i.produkt as ProductName,\ny.Seitenzahl as PageCount\nfrom dbo.tbl_aaa_input_orders z\njoin dbo.tblTripleAArticleRef_aaa_bkp y on y.TripleARef = z.ArtikelNummerKunde and \nz.Kundennummer = left(y.etikettennummer,4) and Aktiv=-1 and z.[PageCount] = y.Seitenzahl\nleft join dbo.tblStammMehrkomponentenPos_aaa_bkp d on d.etikettennummer = y.etikettennummer\nleft join dbo.tblStammMehrkomponentenPos_aaa_bkp e on e.MehrkomponentenID = d.MehrkomponentenID and e.etikettennummer = d.etikettennummer\njoin dbo.sorten_aaa_bkp a on a.etikettennummer = y.etikettennummer\njoin dbo.stamm_aaa_bkp b on b.stammnummer = a.stammnummer\njoin dbo.tblprodukt_aaa_bkp i on i.id = b.produktid",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "truncate table app.tbl_aaa_orders_temp",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"tableOption": "autoCreate",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rakolabel",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_AAA_OrderDetails_temp",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "lk_Processed_AAA_Orders",
+				"description": "Updating is_processed =1 \n in Azure sql db table: app.tbl_aaa_master_customerorderdata_stg  for the records in [app].[tbl_AAA_orders_temp].",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "cp_Rako_aaa_Orders_Temp",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "if exists(select 1 from app.tbl_AAA_Orders_temp)\nupdate a\nset a.is_processed =1 from app.tbl_aaa_master_customerorderdata_stg a\njoin app.tbl_AAA_Orders_temp b on a.materialnumber = b.artikelnummerkunde and b.kundennummer = a.customernumber and a.PageCount = b.Pagecount and a.modifiedtime >\n(select last_modified_date from app.tbl_watermarktable where table_name = 'app.tbl_aaa_customerorderdata');\nselect @@ROWCOUNT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

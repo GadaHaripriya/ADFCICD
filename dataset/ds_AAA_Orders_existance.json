@@ -1,0 +1,37 @@
+{
+	"name": "ds_AAA_Orders_existance",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_a4ltriplea",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Kundennummer",
+				"type": "varchar"
+			},
+			{
+				"name": "ArtikelNummerKunde",
+				"type": "varchar"
+			},
+			{
+				"name": "OrderAddressStreet",
+				"type": "varchar"
+			},
+			{
+				"name": "is_error",
+				"type": "bit"
+			},
+			{
+				"name": "error_description",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "app",
+			"table": "tbl_AAA_Orders_existance_temp"
+		}
+	}
+}

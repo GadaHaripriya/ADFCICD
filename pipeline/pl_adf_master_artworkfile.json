@@ -1,0 +1,369 @@
+{
+	"name": "pl_adf_master_artworkfile",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_tbl_MainControlTable_and_TriggerTable",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select T.Id as TID,T.CustomerName as FolderName,Triggertime,FileName,FileType,IsProcessed,T.CustomerNumber as TCustomerNumber,M.Id as MID,M.CustomerName as CustomerName,M.CustomerNumber as CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable from [app].[tbl_TriggerTable] AS T left join [app].[tbl_MainControlTable] AS M on  T.CustomerNumber=M.CustomerNumber where t.Triggertime<= '@{pipeline().parameters.Pipleline_starttime}' and IsProcessed=0 and FileType='ArtworkFile' and PipelineEndTime is null\n\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "fe_MainControlTable",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_MainControlTable_and_TriggerTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_MainControlTable_and_TriggerTable').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "cp_artwork_source_raw",
+							"description": "Copying the File from Source to Raw with defined Folder structure -Dynamically.",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "BinarySource",
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"modifiedDatetimeEnd": {
+											"value": "@pipeline().parameters.Pipleline_starttime",
+											"type": "Expression"
+										},
+										"wildcardFolderPath": {
+											"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/ArtworkFiles/')",
+											"type": "Expression"
+										},
+										"wildcardFileName": {
+											"value": "@item().FileName",
+											"type": "Expression"
+										},
+										"deleteFilesAfterCompletion": false
+									},
+									"formatSettings": {
+										"type": "BinaryReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BinarySink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									}
+								},
+								"enableStaging": false,
+								"parallelCopies": 10
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_artwork_source",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_artworkfile_raw",
+									"type": "DatasetReference",
+									"parameters": {
+										"folderpath": {
+											"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','ArtworkFiles/')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "cp_extract_xml",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "cp_artwork_source_raw",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "XmlSource",
+									"additionalColumns": [
+										{
+											"name": "FileName",
+											"value": {
+												"value": "@item().FileName",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "XmlReadSettings",
+										"validationMode": "none",
+										"namespaces": true
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"writeBehavior": "insert",
+									"sqlWriterUseTableLock": false,
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 10,
+								"translator": {
+									"type": "TabularTranslator",
+									"mappings": [
+										{
+											"source": {
+												"path": "$['dataReception']['originalFilename']"
+											},
+											"sink": {
+												"name": "originalFilename",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['pages']"
+											},
+											"sink": {
+												"name": "pages",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['pagesDeclaration']"
+											},
+											"sink": {
+												"name": "pagesDeclaration",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['application']"
+											},
+											"sink": {
+												"name": "application",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['labelSKU']"
+											},
+											"sink": {
+												"name": "labelSKU",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['labelSKUDescription']"
+											},
+											"sink": {
+												"name": "labelSKUDescription",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['productSKU']"
+											},
+											"sink": {
+												"name": "productSKU",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['filePath']"
+											},
+											"sink": {
+												"name": "filePath",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['dataReception']['@customer']"
+											},
+											"sink": {
+												"name": "CustomerName",
+												"type": "String"
+											}
+										},
+										{
+											"source": {
+												"path": "$['FileName']"
+											},
+											"sink": {
+												"name": "FileName",
+												"type": "String"
+											}
+										}
+									],
+									"collectionReference": ""
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_xml_raw",
+									"type": "DatasetReference",
+									"parameters": {
+										"FileName": {
+											"value": "@item().FileName",
+											"type": "Expression"
+										},
+										"FolderPath": {
+											"value": "@concat(item().CustomerName,'/',item().CustomerNumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','ArtworkFiles/')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_asql_ArtworkFileMetadata",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "sp_update_Triggertable",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "cp_extract_xml",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[app].[usp_Triggertable_Update]",
+								"storedProcedureParameters": {
+									"FileName": {
+										"value": {
+											"value": "@item().FileName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Pipeline_starttime": {
+										"value": {
+											"value": "@pipeline().parameters.Pipleline_starttime",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_a4ltriplea",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Pipleline_starttime": {
+				"type": "string"
+			},
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"week": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"PipelineStartTime": {
+				"type": "String"
+			},
+			"week": {
+				"type": "String"
+			},
+			"time": {
+				"type": "String"
+			},
+			"date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/ArtworkFileHandling"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

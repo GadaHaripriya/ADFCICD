@@ -1,0 +1,108 @@
+{
+	"name": "pl_sanitycheck_2",
+	"properties": {
+		"activities": [
+			{
+				"name": "fe_customernumber",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_triggertable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_triggertable').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "nb_dataquality_2",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Shared/Data Quality/DQ_AAA_Secondlevel_v2",
+								"baseParameters": {
+									"CustomerName": {
+										"value": "@item().CustomerName",
+										"type": "Expression"
+									},
+									"SanityChecklevel": "Secondlevel",
+									"StartTime": {
+										"value": "@pipeline().parameters.PipelineStartTime",
+										"type": "Expression"
+									},
+									"CustomerNumber": {
+										"value": "@item().CustomerNumber",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureDatabricks1",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "lk_tbl_triggertable",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT distinct CustomerNumber,CustomerName from [app].[tbl_TriggerTable]  where Triggertime< '@{pipeline().parameters.PipelineStartTime}' and Isprocessed=1 and FirstSanity_IsProcessed=1 and PipelineEndTime is null\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"parameters": {
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/Sanitychecks"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

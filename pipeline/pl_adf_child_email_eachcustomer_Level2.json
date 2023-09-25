@@ -1,0 +1,160 @@
+{
+	"name": "pl_adf_child_email_eachcustomer_Level2",
+	"properties": {
+		"activities": [
+			{
+				"name": "gm_rejectedfileslist",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "ds_adls_rejections",
+						"type": "DatasetReference",
+						"parameters": {
+							"folderpath": {
+								"value": "@{pipeline().parameters.CustomerName}/@{pipeline().parameters.CustomerID}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-2/",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"modifiedDatetimeStart": {
+							"value": "@pipeline().parameters.PipelineStartTime",
+							"type": "Expression"
+						},
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "BinaryReadSettings"
+					}
+				}
+			},
+			{
+				"name": "fe_rejectedfile",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "gm_rejectedfileslist",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('gm_rejectedfileslist').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "exe_adf_child_email_eachrejectedfile",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_adf_child_email_eachrejectedfile_Level2",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"SourceFileName": {
+										"value": "@if(\nendswith(\nsubstring(\nitem().name,0,sub(length(item().name),4)),'srcpdf'\n),\nconcat(\nsubstring(\nitem().name,9,sub(length(item().name),19)),'.pdf'),\nif(\nendswith(\nsubstring(\nitem().name,0,sub(length(item().name),4)),'srccsv'\n),\nconcat(\nsubstring(\nitem().name,9,sub(length(item().name),19)),'.csv'),\nconcat(\nsubstring(\nitem().name,9,sub(length(item().name),20)),'.xlsx')\n)\n)",
+										"type": "Expression"
+									},
+									"SourceFilePath": {
+										"value": "@concat(pipeline().parameters.CustomerName,'/',pipeline().parameters.CustomerID,'/',pipeline().parameters.SourceFilePath,'/',\nif(\nendswith(\nsubstring(\nitem().name,0,sub(length(item().name),4)),'srcpdf'\n),\nconcat('pdf/',\nsubstring(\nitem().name,9,sub(length(item().name),19)),'.pdf'),\nif(\nendswith(\nsubstring(\nitem().name,0,sub(length(item().name),4)),'srccsv'\n),\nconcat('csv/',\nsubstring(\nitem().name,9,sub(length(item().name),19)),'.csv'),\nconcat('xlsx/',\nsubstring(\nitem().name,9,sub(length(item().name),20)),'.xlsx'))\n)\n)",
+										"type": "Expression"
+									},
+									"RejectedFileName": {
+										"value": "@item().name",
+										"type": "Expression"
+									},
+									"RejectedFilePath": {
+										"value": "@concat(pipeline().parameters.CustomerName,'/',pipeline().parameters.CustomerID,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.Week,'/Level-2/',item().name)",
+										"type": "Expression"
+									},
+									"RejectionEmailIdTO": {
+										"value": "@pipeline().parameters.RejectionEmailIdTo",
+										"type": "Expression"
+									},
+									"RejectionEmailIdCC": {
+										"value": "@pipeline().parameters.RejectionEmailIdCC",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"CustomerName": {
+				"type": "String",
+				"defaultValue": "FMC"
+			},
+			"CustomerID": {
+				"type": "String",
+				"defaultValue": "1357"
+			},
+			"Year": {
+				"type": "String",
+				"defaultValue": "2023"
+			},
+			"Month": {
+				"type": "String",
+				"defaultValue": "07"
+			},
+			"Week": {
+				"type": "String",
+				"defaultValue": "29"
+			},
+			"PipelineStartTime": {
+				"type": "String",
+				"defaultValue": "2023-07-20T12:44:58.6313864Z"
+			},
+			"RejectionEmailIdTo": {
+				"type": "string",
+				"defaultValue": "madan.b@technovert.com"
+			},
+			"RejectionEmailIdCC": {
+				"type": "string"
+			},
+			"SourceFilePath": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"filename": {
+				"type": "String"
+			},
+			"filepath": {
+				"type": "String"
+			},
+			"test": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

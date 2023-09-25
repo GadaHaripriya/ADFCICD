@@ -1,0 +1,237 @@
+{
+	"name": "pl_adf_master_email",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_tbl_MainControlTable_TriggerTable",
+				"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT * FROM [app].[tbl_MainControlTable]\nWHERE CustomerNumber in (\nSELECT DISTINCT CustomerNumber from [app].[tbl_TriggerTable]\nWHERE Triggertime< '@{pipeline().parameters.PipelineStartTime}' and IsProcessed=1 and FileType='OrderFile' and FirstSanity_IsProcessed=1 and IsRejection_Processed=0 and PipelineEndTime is null)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "fe_Customer",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_MainControlTable_TriggerTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_MainControlTable_TriggerTable').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "gm_check_rejectionfolderexistance",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_adls_rejections",
+									"type": "DatasetReference",
+									"parameters": {
+										"folderpath": {
+											"value": "@{item().CustomerName}/@{item().CustomerNumber}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-1/",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							}
+						},
+						{
+							"name": "if_check_gm_result",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "gm_check_rejectionfolderexistance",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@activity('gm_check_rejectionfolderexistance').output.exists",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "exe_adf_child_email_eachcustomer",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "pl_adf_child_email_eachcustomer",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"CustomerName": {
+													"value": "@item().CustomerName",
+													"type": "Expression"
+												},
+												"CustomerID": {
+													"value": "@item().CustomerNumber",
+													"type": "Expression"
+												},
+												"Year": {
+													"value": "@pipeline().parameters.Year",
+													"type": "Expression"
+												},
+												"Month": {
+													"value": "@pipeline().parameters.Month",
+													"type": "Expression"
+												},
+												"Week": {
+													"value": "@pipeline().parameters.Week",
+													"type": "Expression"
+												},
+												"PipelineStartTime": {
+													"value": "@pipeline().parameters.PipelineStartTime",
+													"type": "Expression"
+												},
+												"RejectionEmailIdTo": {
+													"value": "@item().RejectionEmailIdTO",
+													"type": "Expression"
+												},
+												"RejectionEmailIdCC": {
+													"value": "@item().RejectionEmailIdCC",
+													"type": "Expression"
+												}
+											}
+										}
+									},
+									{
+										"name": "sp_Triggertable_update",
+										"description": "Here we are updating Rejection_Isprocessed with1 if the rejection file is processed.",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "exe_adf_child_email_eachcustomer",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[app].[usp_Triggertable_Rejectionprocess_Update]",
+											"storedProcedureParameters": {
+												"CustomerName": {
+													"value": {
+														"value": "@item().CustomerName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"Pipeline_starttime": {
+													"value": {
+														"value": "@pipeline().parameters.PipelineStartTime",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "ls_sql_a4ltriplea",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"PipelineStartTime": {
+				"type": "String"
+			},
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"Week": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"week": {
+				"type": "String"
+			},
+			"time": {
+				"type": "String"
+			},
+			"date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

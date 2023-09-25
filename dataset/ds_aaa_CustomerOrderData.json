@@ -1,0 +1,16 @@
+{
+	"name": "ds_aaa_CustomerOrderData",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_sql_a4ltriplea",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "app",
+			"table": "tbl_aaa_CustomerOrderData"
+		}
+	}
+}

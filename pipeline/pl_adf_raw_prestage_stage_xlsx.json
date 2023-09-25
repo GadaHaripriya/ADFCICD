@@ -1,0 +1,330 @@
+{
+	"name": "pl_adf_raw_prestage_stage_xlsx",
+	"properties": {
+		"activities": [
+			{
+				"name": "cp_raw_prestage_xlsx",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ExcelSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": {
+								"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/',pipeline().parameters.Filetype,'/')",
+								"type": "Expression"
+							},
+							"wildcardFileName": {
+								"value": "@pipeline().parameters.Filename",
+								"type": "Expression"
+							},
+							"enablePartitionDiscovery": false
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"value": "@pipeline().parameters.XLSXColumnMapping",
+						"type": "Expression"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_adls_raw_prestage_xlsx",
+						"type": "DatasetReference",
+						"parameters": {
+							"source_folder": {
+								"value": "@pipeline().parameters.source_folder",
+								"type": "Expression"
+							},
+							"filetype": "xlsx",
+							"year": {
+								"value": "@pipeline().parameters.Year",
+								"type": "Expression"
+							},
+							"month": {
+								"value": "@pipeline().parameters.Month",
+								"type": "Expression"
+							},
+							"Customernumber": {
+								"value": "@pipeline().parameters.Customernumber",
+								"type": "Expression"
+							},
+							"week": {
+								"value": "@pipeline().parameters.week",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_prestage_csv",
+						"type": "DatasetReference",
+						"parameters": {
+							"Customerfolder": {
+								"value": "@concat(pipeline().parameters.source_folder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','parsed_csv')",
+								"type": "Expression"
+							},
+							"Filename": {
+								"value": "@replace(pipeline().parameters.Filename,'.xlsx','srcxlsx.csv')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "sp_auditlogs-raw_prestage_success_xlsx",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_raw_prestage_xlsx",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[app].[usp_AuditLogsRawToPrestage]",
+					"storedProcedureParameters": {
+						"CustomerNumber": {
+							"value": {
+								"value": "@pipeline().parameters.Customernumber",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Errors": {
+							"value": null,
+							"type": "String"
+						},
+						"FilenameatPrestage": {
+							"value": {
+								"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@pipeline().parameters.Pipelinestarttime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"Raw_Source_filetype": {
+							"value": {
+								"value": "@pipeline().parameters.Filetype",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Status": {
+							"value": "success",
+							"type": "String"
+						},
+						"TriggerID": {
+							"value": {
+								"value": "@pipeline().parameters.TriggerID",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sp_auditlogs-raw_prestage_failure_xlsx",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_raw_prestage_xlsx",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[app].[usp_AuditLogsRawToPrestage]",
+					"storedProcedureParameters": {
+						"CustomerNumber": {
+							"value": {
+								"value": "@pipeline().parameters.Customernumber",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Errors": {
+							"value": {
+								"value": "@activity('cp_raw_prestage_xlsx').output.errors[0].Message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FilenameatPrestage": {
+							"value": {
+								"value": "@replace(pipeline().parameters.Filename,'xlsx','csv')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@pipeline().parameters.Pipelinestarttime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"Raw_Source_filetype": {
+							"value": {
+								"value": "@pipeline().parameters.Filetype",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Status": {
+							"value": "failure",
+							"type": "String"
+						},
+						"TriggerID": {
+							"value": {
+								"value": "@pipeline().parameters.TriggerID",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"source_folder": {
+				"type": "string"
+			},
+			"Filetype": {
+				"type": "string"
+			},
+			"Filename": {
+				"type": "string"
+			},
+			"XLSXColumnMapping": {
+				"type": "object"
+			},
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"Customernumber": {
+				"type": "string"
+			},
+			"week": {
+				"type": "string"
+			},
+			"Pipelinestarttime": {
+				"type": "string"
+			},
+			"TriggerID": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"PipelineStartTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

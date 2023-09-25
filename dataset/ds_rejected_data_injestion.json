@@ -1,0 +1,243 @@
+{
+	"name": "ds_rejected_data_injestion",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"Folderpath": {
+				"type": "string"
+			},
+			"FileName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@dataset().FileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().Folderpath",
+					"type": "Expression"
+				},
+				"fileSystem": "rejections"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "PurchaseOrder",
+				"type": "String"
+			},
+			{
+				"name": "VendorNumber",
+				"type": "String"
+			},
+			{
+				"name": "VendorName",
+				"type": "String"
+			},
+			{
+				"name": "VATNumber",
+				"type": "String"
+			},
+			{
+				"name": "OrderAddressName",
+				"type": "String"
+			},
+			{
+				"name": "OrderAddressStreet",
+				"type": "String"
+			},
+			{
+				"name": "OrderAdressPostalCode",
+				"type": "String"
+			},
+			{
+				"name": "OrderAdressCity",
+				"type": "String"
+			},
+			{
+				"name": "OrderAdressCountry",
+				"type": "String"
+			},
+			{
+				"name": "Telephone",
+				"type": "String"
+			},
+			{
+				"name": "VendorEmail",
+				"type": "String"
+			},
+			{
+				"name": "Date",
+				"type": "String"
+			},
+			{
+				"name": "TermsofPayment",
+				"type": "String"
+			},
+			{
+				"name": "ContactPerson",
+				"type": "String"
+			},
+			{
+				"name": "Email",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressName",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressNameAddition",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressStreet",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressPostalCode",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressCity",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryAdressCountry",
+				"type": "String"
+			},
+			{
+				"name": "BillingAdressName",
+				"type": "String"
+			},
+			{
+				"name": "BillingAdressStreet",
+				"type": "String"
+			},
+			{
+				"name": "BillingAdressPostalCode",
+				"type": "String"
+			},
+			{
+				"name": "BillingAdressCity",
+				"type": "String"
+			},
+			{
+				"name": "BillingAdressCountry",
+				"type": "String"
+			},
+			{
+				"name": "BillingE-Mail",
+				"type": "String"
+			},
+			{
+				"name": "BillingcustomerVATNumber",
+				"type": "String"
+			},
+			{
+				"name": "ResidentCountryVATID",
+				"type": "String"
+			},
+			{
+				"name": "HeaderText",
+				"type": "String"
+			},
+			{
+				"name": "Item",
+				"type": "String"
+			},
+			{
+				"name": "MaterialNumber",
+				"type": "String"
+			},
+			{
+				"name": "Description",
+				"type": "String"
+			},
+			{
+				"name": "Size",
+				"type": "String"
+			},
+			{
+				"name": "WindingMethod",
+				"type": "String"
+			},
+			{
+				"name": "Qty",
+				"type": "String"
+			},
+			{
+				"name": "UOM",
+				"type": "String"
+			},
+			{
+				"name": "UnitPriceCur",
+				"type": "String"
+			},
+			{
+				"name": "NetAmount",
+				"type": "String"
+			},
+			{
+				"name": "DeliveryDate",
+				"type": "String"
+			},
+			{
+				"name": "SubTotal",
+				"type": "String"
+			},
+			{
+				"name": "TotalAmount",
+				"type": "String"
+			},
+			{
+				"name": "IsErrorDQ",
+				"type": "String"
+			},
+			{
+				"name": "DescriptionDQ",
+				"type": "String"
+			},
+			{
+				"name": "ModifiedTime",
+				"type": "String"
+			},
+			{
+				"name": "CustomerNumber",
+				"type": "String"
+			},
+			{
+				"name": "FileName",
+				"type": "String"
+			},
+			{
+				"name": "Is_processed",
+				"type": "String"
+			},
+			{
+				"name": "TriggerTableID",
+				"type": "String"
+			},
+			{
+				"name": "KeyColumn",
+				"type": "String"
+			},
+			{
+				"name": "ErrorJSON",
+				"type": "String"
+			}
+		]
+	}
+}

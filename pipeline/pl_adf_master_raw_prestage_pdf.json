@@ -1,0 +1,583 @@
+{
+	"name": "pl_adf_master_raw_prestage_pdf",
+	"properties": {
+		"activities": [
+			{
+				"name": "sv_pdf_file_path",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set variable1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pdffilepath",
+					"value": {
+						"value": "@concat(pipeline().parameters.Customerfolder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','pdf/',pipeline().parameters.FileName)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "wb_SASURLgeneration",
+				"description": "This web activity connects to the logic apps, where it generates the sas url for the mentioned file",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "sv_pdf_file_path",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_dynamicSASURL/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=ppdkYq3E7E5A8etHrIVXzcAB5GQy5Lu9knySWkOsWpw",
+					"method": "POST",
+					"body": {
+						"value": "{\n    \"blobpath\":\"@{variables('pdffilepath')}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "wb_frc_post",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "wb_SASURLgeneration",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@pipeline().parameters.FormRecognizerURL",
+						"type": "Expression"
+					},
+					"method": "POST",
+					"headers": {
+						"Ocp-Apim-Subscription-Key": {
+							"value": "@pipeline().parameters.FormRecognizerKey",
+							"type": "Expression"
+						},
+						"contet-type": "application/pdf"
+					},
+					"body": {
+						"value": "@concat('{\"urlSource\":\"',activity('wb_SASURLgeneration').output.blobUri,'\"}')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "wt_10",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "wb_frc_post",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 10
+				}
+			},
+			{
+				"name": "cp_prestage_json_csv",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "cp_prestage_json",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"value": "@json(pipeline().parameters.Pdfmapping)\n\n",
+						"type": "Expression"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_adls_prestage_json",
+						"type": "DatasetReference",
+						"parameters": {
+							"Customerfolder": {
+								"value": "@concat(pipeline().parameters.Customerfolder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','src_pdf','/','json')",
+								"type": "Expression"
+							},
+							"filename": {
+								"value": "@concat(substring(pipeline().parameters.FileName,0,sub(length(pipeline().parameters.FileName),4)),'.json')",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_prestage_json_csv",
+						"type": "DatasetReference",
+						"parameters": {
+							"Customerfolder": {
+								"value": "@concat(pipeline().parameters.Customerfolder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','src_pdf','/','raw_csv')",
+								"type": "Expression"
+							},
+							"Filename": {
+								"value": "@concat(substring(pipeline().parameters.FileName,0,sub(length(pipeline().parameters.FileName),4)),'.csv')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "cp_prestage_json",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "wt_10",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "RestSource",
+						"httpRequestTimeout": "00:01:40",
+						"requestInterval": "00.00:00:00.010",
+						"requestMethod": "GET",
+						"additionalHeaders": {
+							"Ocp-Apim-Subscription-Key": {
+								"value": "@pipeline().parameters.FormRecognizerKey",
+								"type": "Expression"
+							}
+						},
+						"paginationRules": {
+							"supportRFC5988": "true"
+						}
+					},
+					"sink": {
+						"type": "JsonSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "JsonWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rest_frc1",
+						"type": "DatasetReference",
+						"parameters": {
+							"url": {
+								"value": "@activity('wb_frc_post').output.ADFWebActivityResponseHeaders['Operation-Location']",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_adls_prestage_json",
+						"type": "DatasetReference",
+						"parameters": {
+							"Customerfolder": {
+								"value": "@concat(pipeline().parameters.Customerfolder,'/',pipeline().parameters.Customernumber,'/',pipeline().parameters.Year,'/',pipeline().parameters.Month,'/',pipeline().parameters.week,'/','src_pdf','/','json')",
+								"type": "Expression"
+							},
+							"filename": {
+								"value": "@concat(substring(pipeline().parameters.FileName,0,sub(length(pipeline().parameters.FileName),4)),'.json')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "sp_auditlogs-raw_prestage_success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_prestage_json_csv",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[app].[usp_AuditLogsRawToPrestage]",
+					"storedProcedureParameters": {
+						"CustomerNumber": {
+							"value": {
+								"value": "@pipeline().parameters.Customernumber",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Errors": {
+							"value": null,
+							"type": "String"
+						},
+						"FilenameatPrestage": {
+							"value": {
+								"value": "@replace(pipeline().parameters.FileName,'pdf','csv')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineStartTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"Raw_Source_filetype": {
+							"value": "pdf",
+							"type": "String"
+						},
+						"Status": {
+							"value": "success",
+							"type": "String"
+						},
+						"TriggerID": {
+							"value": {
+								"value": "@pipeline().parameters.TriggerID",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sp_auditlogs-raw_prestage_failure_pdf",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_prestage_json_csv",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[app].[usp_AuditLogsRawToPrestage]",
+					"storedProcedureParameters": {
+						"CustomerNumber": {
+							"value": {
+								"value": "@pipeline().parameters.Customernumber",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Errors": {
+							"value": {
+								"value": "@activity('cp_prestage_json_csv').output.errors[0].Message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"FilenameatPrestage": {
+							"value": {
+								"value": "@replace(pipeline().parameters.FileName,'pdf','csv')",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineStartTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"Raw_Source_filetype": {
+							"value": "pdf",
+							"type": "String"
+						},
+						"Status": {
+							"value": "failure",
+							"type": "String"
+						},
+						"TriggerID": {
+							"value": {
+								"value": "@pipeline().parameters.TriggerID",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "PipelineStartTime",
+					"value": {
+						"value": "@utcnow()",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "nb_datacleaninig_pdf",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "cp_prestage_json_csv",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Shared/Data Cleaning/DC_AAA_v1",
+					"baseParameters": {
+						"CustomerName": {
+							"value": "@pipeline().parameters.Customerfolder",
+							"type": "Expression"
+						},
+						"FileFormat": "pdf",
+						"PipelineName": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"PipelineRunId": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"ReportingMonth": {
+							"value": "@pipeline().parameters.Month",
+							"type": "Expression"
+						},
+						"ReportingYear": {
+							"value": "@pipeline().parameters.Year",
+							"type": "Expression"
+						},
+						"file_name": {
+							"value": "@replace(pipeline().parameters.FileName,'pdf','csv')",
+							"type": "Expression"
+						},
+						"week": {
+							"value": "@pipeline().parameters.week",
+							"type": "Expression"
+						},
+						"CustomerNumber": {
+							"value": "@pipeline().parameters.Customernumber",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"source_folder": {
+				"type": "string"
+			},
+			"Customerfolder": {
+				"type": "string"
+			},
+			"Pdfmapping": {
+				"type": "string"
+			},
+			"FileName": {
+				"type": "string"
+			},
+			"FormRecognizerURL": {
+				"type": "string"
+			},
+			"FormRecognizerKey": {
+				"type": "string"
+			},
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			},
+			"Customernumber": {
+				"type": "string"
+			},
+			"week": {
+				"type": "string"
+			},
+			"TriggerID": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"pdffilepath": {
+				"type": "String"
+			},
+			"PipelineStartTime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child/Pipeline_raw_prestage_pdf"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}
