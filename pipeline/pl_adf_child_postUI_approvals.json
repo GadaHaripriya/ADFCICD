@@ -1,0 +1,267 @@
+{
+	"name": "pl_adf_child_postUI_approvals",
+	"properties": {
+		"activities": [
+			{
+				"name": "sv_pl_starttime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipeline_starttime",
+					"value": {
+						"value": "@pipeline().TriggerTime",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "sv_year",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Year",
+					"value": {
+						"value": "@substring(utcnow(),0,4)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "sv_month",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Month",
+					"value": {
+						"value": "@substring(utcnow(),5,2)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "sv_week",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "week",
+					"value": {
+						"value": "@if(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),7),'week-1',\n\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),14),'week-2',\n\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),21),'week-3',\nif(\n\n    lessOrEquals(int(substring(utcnow(),8,2)),28),'week-4','week-5'\n\n    )\n\n    )\n\n    )\n\t)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "exe_adf_master_email",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exe_rejected_data_injestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_master_email_Level2",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"PipelineStartTime": {
+							"value": "@variables('pipeline_starttime')",
+							"type": "Expression"
+						},
+						"Year": {
+							"value": "@variables('Year')",
+							"type": "Expression"
+						},
+						"Month": {
+							"value": "@variables('Month')",
+							"type": "Expression"
+						},
+						"Week": {
+							"value": "@variables('week')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "exe_adf_order_creation_input",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "sv_pl_starttime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sv_year",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sv_month",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sv_week",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_order_creation_input",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"pipeline_starttime": {
+							"value": "@variables('pipeline_starttime')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "exe_rejected_data_injestion",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "sv_year",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sv_pl_starttime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "sv_month",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_rejected_data_injestion_v1",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Year": {
+							"value": "@variables('Year')",
+							"type": "Expression"
+						},
+						"Month": {
+							"value": "@variables('Month')",
+							"type": "Expression"
+						},
+						"week": {
+							"value": "@variables('week')",
+							"type": "Expression"
+						},
+						"pipeline_starttime": {
+							"value": "@variables('pipeline_starttime')",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "lk_update_watermark",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "exe_adf_master_email",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "exe_adf_order_creation_input",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "update app.tbl_watermarktable\nset last_modified_date = '@{variables('pipeline_starttime')}' where table_name = 'app.tbl_Order_Creation_Inputs';\nselect 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AAA_OrderDetails_temp",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			}
+		],
+		"variables": {
+			"Year": {
+				"type": "String"
+			},
+			"Month": {
+				"type": "String"
+			},
+			"week": {
+				"type": "String"
+			},
+			"pipeline_starttime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Post-UI"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,308 @@
+{
+	"name": "pl_sanitycheck_1",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_tbl_MainControlTable_TriggerTable",
+				"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select T.Id as TID,T.CustomerName as FolderName,Triggertime,FileName,FileType,IsProcessed,T.CustomerNumber as TCustomerNumber,M.Id as MID,M.CustomerName as CustomerName,M.CustomerNumber as CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable from [app].[tbl_TriggerTable] AS T left join [app].[tbl_MainControlTable] AS M on  T.CustomerNumber=M.CustomerNumber where t.Triggertime< '@{pipeline().parameters.PipelineStartTime}' and IsProcessed=1 and FileType='OrderFile' and FirstSanity_IsProcessed=0 and PipelineEndTime is null\n\n\n",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "fe_MainControlTable",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_MainControlTable_TriggerTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_MainControlTable_TriggerTable').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "nb_dataquality_1",
+							"type": "DatabricksNotebook",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"notebookPath": "/Shared/Data Quality/DQ_AAA_FirstLevel_v3",
+								"baseParameters": {
+									"CustomerName": {
+										"value": "@item().CustomerName",
+										"type": "Expression"
+									},
+									"PipelineName": {
+										"value": "@pipeline().Pipeline",
+										"type": "Expression"
+									},
+									"PipelineRunId": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"ReportingMonth": {
+										"value": "@pipeline().parameters.Month",
+										"type": "Expression"
+									},
+									"ReportingYear": {
+										"value": "@pipeline().parameters.Year",
+										"type": "Expression"
+									},
+									"SanityChecklevel": "Firstlevel",
+									"week": {
+										"value": "@pipeline().parameters.week",
+										"type": "Expression"
+									},
+									"CustomerNumber": {
+										"value": "@item().CustomerNumber",
+										"type": "Expression"
+									},
+									"file_name": {
+										"value": "@if(\n    endswith(string(item().FileName),'.csv'),\n    replace(item().FileName,'.csv','srccsv.csv'),\nif(\n    endswith(string(item().FileName),'pdf'),\n    replace(item().FileName,'.pdf','srcpdf.csv')\n,\nif(\n    endswith(string(item().FileName),'xml'),\n    replace(item().FileName,'.xml','srcxml.csv')\n,\n    replace(item().FileName,'.xlsx','srcxlsx.csv')\n\n    )\n  )\n  )",
+										"type": "Expression"
+									},
+									"TriggerTableID": {
+										"value": "@string(item().TID)  ",
+										"type": "Expression"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureDatabricks1",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "sp_update_triggertable_sanity",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "nb_dataquality_1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[app].[usp_Triggertable_Sanity_Update]",
+								"storedProcedureParameters": {
+									"FileName": {
+										"value": {
+											"value": "@if(\n    endswith(string(item().FileName),'srccsv.csv'),\n    replace(item().FileName,'srccsv.csv','.csv'),\nif(\n    endswith(string(item().FileName),'srcpdf.csv'),\n    replace(item().FileName,'srcpdf.csv','.pdf')\n,\nif(\n    endswith(string(item().FileName),'srcxml.csv'),\n    replace(item().FileName,'srcxml.csv','.xml')\n,\n    replace(item().FileName,'srcxlsx.csv','.xlsx')\n\n    )\n  )\n  )",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Pipeline_starttime": {
+										"value": {
+											"value": "@pipeline().parameters.PipelineStartTime",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_a4ltriplea",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "sp_error_notebook",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "nb_dataquality_1",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[app].[usp_tbl_AuditLogsSanityChecks]",
+								"storedProcedureParameters": {
+									"BadRecords": {
+										"value": null,
+										"type": "String"
+									},
+									"CustomerName": {
+										"value": {
+											"value": "@item().CustomerName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"CustomerNumber": {
+										"value": {
+											"value": "@item().CustomerNumber",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Errors": {
+										"value": {
+											"value": "@activity('nb_dataquality_1').Error.message\n",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FileName": {
+										"value": {
+											"value": "@if(\n    endswith(string(item().FileName),'srccsv.csv'),\n    replace(item().FileName,'srccsv.csv','.csv'),\nif(\n    endswith(string(item().FileName),'srcpdf.csv'),\n    replace(item().FileName,'srcpdf.csv','.pdf')\n,\nif(\n    endswith(string(item().FileName),'srcxml.csv'),\n    replace(item().FileName,'srcxml.csv','.xml')\n,\n    replace(item().FileName,'srcxlsx.csv','.xlsx')\n\n    )\n  )\n  )\n",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FileReportingMonth": {
+										"value": {
+											"value": "@formatDateTime(utcnow(), 'MM')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"FileReportingYear": {
+										"value": {
+											"value": "@formatDateTime(utcnow(), 'yyyy')",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"GoodRecords": {
+										"value": null,
+										"type": "String"
+									},
+									"LogTime": {
+										"value": {
+											"value": "@activity('nb_dataquality_1').ExecutionEndTime\n",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineName": {
+										"value": {
+											"value": "@pipeline().Pipeline",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"PipelineRunId": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Status": {
+										"value": "Failed",
+										"type": "String"
+									},
+									"TriggerTableID": {
+										"value": {
+											"value": "@item().TID",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "ls_sql_a4ltriplea",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			},
+			"week": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"utcnow": {
+				"type": "String"
+			},
+			"pipeline_starttime": {
+				"type": "String"
+			},
+			"week": {
+				"type": "String"
+			},
+			"time": {
+				"type": "String"
+			},
+			"date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Pre-UI/2.Sanity Level-1"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

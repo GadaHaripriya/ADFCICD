@@ -1,0 +1,97 @@
+{
+	"name": "ds_adls_raw_prestage_xlsx",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureDataLakeStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"source_folder": {
+				"type": "String"
+			},
+			"filetype": {
+				"type": "String"
+			},
+			"year": {
+				"type": "String"
+			},
+			"month": {
+				"type": "String"
+			},
+			"Customernumber": {
+				"type": "String"
+			},
+			"week": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "sheet1",
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@concat(dataset().source_folder,'/',dataset().Customernumber,'/',dataset().year,'/',dataset().month,'/',dataset().week,'/',dataset().filetype,'/')",
+					"type": "Expression"
+				},
+				"fileSystem": "raw"
+			},
+			"firstRowAsHeader": true
+		},
+		"schema": [
+			{
+				"name": "Plant",
+				"type": "String"
+			},
+			{
+				"name": "Vendor/supplying plant",
+				"type": "String"
+			},
+			{
+				"name": "Purchasing Document",
+				"type": "String"
+			},
+			{
+				"name": "Item",
+				"type": "String"
+			},
+			{
+				"name": "Material",
+				"type": "String"
+			},
+			{
+				"name": "Short Text",
+				"type": "String"
+			},
+			{
+				"name": "Order Quantity",
+				"type": "String"
+			},
+			{
+				"name": "Order Unit",
+				"type": "String"
+			},
+			{
+				"name": "Net price",
+				"type": "String"
+			},
+			{
+				"name": "Currency",
+				"type": "String"
+			},
+			{
+				"name": "   Per",
+				"type": "String"
+			},
+			{
+				"name": "Del. Date",
+				"type": "String"
+			},
+			{
+				"name": "Comment",
+				"type": "String"
+			}
+		]
+	}
+}

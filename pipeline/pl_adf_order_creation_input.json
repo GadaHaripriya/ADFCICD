@@ -1,0 +1,337 @@
+{
+	"name": "pl_adf_order_creation_input",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_tbl_aaa_customerorderdata",
+				"description": "incremenetally giving paremeters for etiketten number updation in Rako Label",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select Etikettennummer,MaterialNumber,PurchaseOrder,Item,CustomerNumber,StammNummer,PageCount,primary_filepath,secondary_filepath\nfrom app.tbl_aaa_CustomerOrderData\nwhere IsApproved = 1 and Isprocessed <> 1 and ApprovalTimestamp BETWEEN (\n\t\t\tSELECT last_modified_date\n\t\t\tFROM app.tbl_watermarktable\n\t\t\tWHERE table_name = 'app.tbl_Order_Creation_Inputs'\n\t\t\t) and '@{pipeline().parameters.pipeline_starttime}';\nselect @@rowcount ",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "fe_tbl_customerorderdata",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_aaa_customerorderdata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_aaa_customerorderdata').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "lk_usp_spSorteCopy",
+							"description": "passing the new etiketten number to the sortencopy proc",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "lk_tbl_sorten_etikettennummer",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "DECLARE @var int= (select case when @{activity('lk_tbl_sorten_etikettennummer').output.firstRow.New_Etikettennummer}=0 then 1 else 0 end ),@output bigint\n\nexec [dbo].[spTripleA_SorteCopy_bkp] @EtikettennummerSource = @{item().Etikettennummer}, \n@EtikettennummerDestination = @{activity('lk_tbl_sorten_etikettennummer').output.firstRow.New_Etikettennummer},\n @ASKWInclude = 0,@NeuerReferenzArtikel = \n@var,@GrafikDatenpfad='@{item().primary_filepath}',@GrafikDatenpfadBASE='@{item().secondary_filepath}',@ArtikelnummerKunde='@{item().MaterialNumber}',@Printlabel = @output output;\nselect @output as NewLabel;\n\n",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_rakolabel",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "lk_tbl_sorten_etikettennummer",
+							"description": "finding the next etiketten number value",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "select max(Etikettennummer) as Max_Etikettennummer,\n\tcase \n\t\twhen RIGHT(cast(max(Etikettennummer) as int),2)= 99 \n\t\t\tTHEN  \n\t\t\t0\n\t\telse cast(max(Etikettennummer) as int)+1 \n\t\tend as New_Etikettennummer\nfrom dbo.sorten_aaa_bkp where stammnummer = @{item().StammNummer} and KundenNummer = left(@{item().StammNummer},4)",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_rakolabel",
+									"type": "DatasetReference"
+								},
+								"firstRowOnly": true
+							}
+						},
+						{
+							"name": "If Condition1",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "lk_tbl_sorten",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@contains(activity('lk_tbl_sorten').output,'firstRow')",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "lk_tbl_aaa_customerorderdata_etikettennummer",
+										"description": "updatingt he new etiketten and stamm in the customerorderdata table",
+										"type": "Lookup",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "AzureSqlSource",
+												"sqlReaderQuery": {
+													"value": "update app.tbl_aaa_CustomerOrderData\nset New_Etikettennummer = '@{activity('lk_tbl_sorten').output.firstRow.New_Etikettennummer}',New_Stammnummer = '@{substring(string(activity('lk_tbl_sorten').output.firstRow.New_Etikettennummer),0,7)}'\nwhere Etikettennummer = '@{item().Etikettennummer}' and \nMaterialNumber = '@{item().MaterialNumber}' and \nPurchaseOrder = '@{item().PurchaseOrder}' and\nItem = '@{item().Item}' \nand CustomerNumber = '@{item().CustomerNumber}'\nand PageCount = '@{item().PageCount}'\nand primary_filepath = '@{item().primary_filepath}'\nand secondary_filepath = '@{item().secondary_filepath}'\nand Stammnummer = '@{item().StammNummer}'\nselect @@ROWCOUNT",
+													"type": "Expression"
+												},
+												"queryTimeout": "02:00:00",
+												"partitionOption": "None"
+											},
+											"dataset": {
+												"referenceName": "csvtoazuresqltable",
+												"type": "DatasetReference"
+											},
+											"firstRowOnly": false
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "lk_tbl_sorten",
+							"description": "checking if the newly generated etiketten number is in the sorten table",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "lk_usp_spSorteCopy",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlServerSource",
+									"sqlReaderQuery": {
+										"value": "select Etikettennummer as New_Etikettennummer from dbo.sorten_aaa_bkp where Etikettennummer = \n@{activity('lk_usp_spSorteCopy').output.firstRow.NewLabel}",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_rakolabel",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "cp_Customer_Order_Input_table",
+				"description": "copy data to order creation input table",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "fe_tbl_customerorderdata",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select distinct 3020 as Personalnummer,CustomerNumber as Kundennummer,cast(New_Stammnummer as int) as Stammnummer,\ncast(New_Etikettennummer as int) as Etikettennummer,PurchaseOrder as Bestellnummer ,\ncast(Qty as int) as Auflage,\nDeliveryDate as Liefertermin,\nUnitPriceCur as Bestellpreis,\nItem as BestellnummerPosition\nfrom app.tbl_aaa_CustomerOrderData where IsApproved = 1 and ApprovalTimestamp>\n(select coalesce(last_modified_date,'1900-01-01 00:00:00') from app.tbl_watermarktable \nwhere table_name = 'app.tbl_Order_Creation_Inputs') and New_Etikettennummer is not null",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlServerSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_AAA_Orders_existance",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_rakolabel_ordercreationinput",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "cp_aaa_customerorderdate_update",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "cp_Customer_Order_Input_table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": "select etikettennummer from dbo.tbl_order_creation_input",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"sqlWriterStoredProcedureName": "[app].[usp_order_input_check]",
+						"sqlWriterTableType": "dbo.etikettennummer",
+						"storedProcedureTableTypeParameterName": "etikettennummer",
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rakolabel_ordercreationinput",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"parameters": {
+			"pipeline_starttime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Post-UI"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

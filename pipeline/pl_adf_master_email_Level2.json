@@ -1,0 +1,197 @@
+{
+	"name": "pl_adf_master_email_Level2",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_tbl_aaa_CustomerOrderData",
+				"description": "",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "With CTE as(\nSELECT DISTINCT CustomerNumber,CustomerName,FolderHierarchy FROM [app].[tbl_aaa_CustomerOrderData]\nWHERE ApprovalTimestamp BETWEEN (\n\t\t\tSELECT last_modified_date\n\t\t\tFROM app.tbl_watermarktable\n\t\t\tWHERE table_name = 'app.tbl_Order_Creation_Inputs'\n\t\t\t) and '@{pipeline().parameters.PipelineStartTime}' and IsApproved=0 \n)\nSELECT CTE.CustomerName,\nCTE.CustomerNumber,\nFolderHierarchy,\nMC.RejectionEmailIdTO,\nMC.RejectionEmailIdCC\nFROM CTE\nJOIN [app].[tbl_MainControlTable] MC\nON MC.CustomerNumber=CTE.CustomerNumber",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "fe_Customer",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_aaa_CustomerOrderData').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "gm_check_rejectionfolderexistance",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "ds_adls_rejections",
+									"type": "DatasetReference",
+									"parameters": {
+										"folderpath": {
+											"value": "@{item().CustomerName}/@{item().CustomerNumber}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-2/",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							}
+						},
+						{
+							"name": "if_check_gm_result",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "gm_check_rejectionfolderexistance",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@activity('gm_check_rejectionfolderexistance').output.exists",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "exe_adf_child_email_eachcustomer",
+										"type": "ExecutePipeline",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"pipeline": {
+												"referenceName": "pl_adf_child_email_eachcustomer_Level2",
+												"type": "PipelineReference"
+											},
+											"waitOnCompletion": true,
+											"parameters": {
+												"CustomerName": {
+													"value": "@item().CustomerName",
+													"type": "Expression"
+												},
+												"CustomerID": {
+													"value": "@item().CustomerNumber",
+													"type": "Expression"
+												},
+												"Year": {
+													"value": "@pipeline().parameters.Year",
+													"type": "Expression"
+												},
+												"Month": {
+													"value": "@pipeline().parameters.Month",
+													"type": "Expression"
+												},
+												"Week": {
+													"value": "@pipeline().parameters.Week",
+													"type": "Expression"
+												},
+												"PipelineStartTime": {
+													"value": "@pipeline().parameters.PipelineStartTime",
+													"type": "Expression"
+												},
+												"RejectionEmailIdTo": {
+													"value": "@item().RejectionEmailIdTO",
+													"type": "Expression"
+												},
+												"RejectionEmailIdCC": {
+													"value": "@item().RejectionEmailIdCC",
+													"type": "Expression"
+												},
+												"SourceFilePath": {
+													"value": "@item().FolderHierarchy",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"PipelineStartTime": {
+				"type": "String"
+			},
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"Week": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"week": {
+				"type": "String"
+			},
+			"time": {
+				"type": "String"
+			},
+			"date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Post-UI/Email alerts"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:06Z"
+	}
+}

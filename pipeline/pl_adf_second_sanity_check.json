@@ -1,0 +1,351 @@
+{
+	"name": "pl_adf_second_sanity_check",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_error_flag_aaa_orders",
+				"description": "Updating app.tbl_aaa_customerorderdata_stg table with iserrordq, descriptiondq, ERPdeliveryAdrressStreet, ErrorJson for the records where modified time> last modified date that we got from the first lookup.\nUpdating app.tbl_aaa_customerorderdata table with Iserrordq, Descriptiondq, IsApproved as null, Modified date as getdate(), for the records where Isapproved = -1, and Approval time stamp is greater than last modofied date from the first lookup.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_customerorderdata_existancecheck",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "if exists(select 1 from app.tbl_AAA_Orders_existance_temp)\nupdate a\nset a.iserrordq = b.is_error,a.descriptiondq=b.error_description,a.ERPDeliveryAddressStreet= case when b.ERP_DeliveryAddressStreet = '' then null else ERP_DeliveryAddressStreet end \nfrom app.tbl_aaa_customerorderdata_stg a join app.tbl_AAA_Orders_existance_temp b \non a.CustomerNumber = b.Kundennummer and a.MaterialNumber = b.ArtikelNummerKunde and a.DeliveryAdressStreet = b.DeliveryAddressStreet\nand a.PurchaseOrder = b.PurchaseOrder and a.Item = b.Item\nwhere a.modifiedTime>\n'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nselect @@ROWCOUNT",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "lk_getdate_watermark",
+				"description": "Getting the last modified date and pipeline start time from the watermark table for the table: app.tbl_aaa_CustomerOrderData_stg",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select last_modified_date as last_modified_date,getdate() as pipeline_starttime from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData_stg'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "lk_update_watermark",
+				"description": "Updating the Watermark table  for tbl_aaa_CustomerOrderData_stg with\nmax(Modified time) from tbl_aaa_CustomerOrderData_stg table. ",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "lk_aaa_master_customerorderdata_stg_update",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "update app.tbl_watermarktable\nset last_modified_date = (select coalesce(max(modifiedTime),'1900-01-01 00:00:00') from app.tbl_aaa_CustomerOrderData_stg)\nwhere table_name = 'app.tbl_aaa_CustomerOrderData_stg';\nselect 1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "exe_adf_pl_sanitycheck_2",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "exe_adf_master_artworkfile",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_sanitycheck_2",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Year": {
+							"value": "@pipeline().parameters.Year",
+							"type": "Expression"
+						},
+						"Month": {
+							"value": "@pipeline().parameters.Month",
+							"type": "Expression"
+						},
+						"PipelineStartTime": {
+							"value": "@pipeline().parameters.PipelineStartTime",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "exe_adf_master_artworkfile",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "lk_error_flag_aaa_orders",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_master_artworkfile",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"Pipleline_starttime": {
+							"value": "@pipeline().parameters.PipelineStartTime",
+							"type": "Expression"
+						},
+						"Year": {
+							"value": "@pipeline().parameters.Year",
+							"type": "Expression"
+						},
+						"Month": {
+							"value": "@pipeline().parameters.Month",
+							"type": "Expression"
+						},
+						"week": {
+							"value": "@pipeline().parameters.Week",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "lk_aaa_master_customerorderdata_stg_update",
+				"description": "Updating the table app.tbl_aaa_master_customerorderdata_stg with the error json needed for front end display.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "exe_adf_pl_sanitycheck_2",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "update app.tbl_aaa_master_customerorderdata_stg\nset errorjson = concat( '[' ,\ncase when descriptiondq like '%Delivery Address%' then concat('{\"ErrorType\":\"Shipping Address\",','\"Comment\":\"Delivery Address Street is mismatching with ERP System\"}',\ncase when descriptiondq like '%Material Number%' or descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Material Number%'  then concat('{\"ErrorType\":\"Material Number\",','\"Comment\":\"Material Number is missing in ERP System\"}',\ncase when descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Purchase Order%'  then concat('{\"ErrorType\":\"Purchase Order\",','\"Comment\":\"Purchase Order Item already exists in ERP\"}',case when descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Customer Number%'  then concat('{\"ErrorType\":\"Customer Number\",','\"Comment\":\"Customer Number is missing in ERP System\"}',case when descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when descriptiondq like '%Artwork File%' then concat('{\"ErrorType\":\"Artwork File\",','\"Comment\":\"BOOKLABEL & BASE Artwork File  is missing in ERP System\"}',case when descriptiondq like '%CustomerOrder%' then concat(',{\"ErrorType\":\"Partial Duplicate\"','\"Comment\":\"Order data loaded has duplicates records\"}') end) end,\n']') where iserrordq=1 and modifiedTime >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nupdate d\nset d.IsErrorDQ = coalesce(is_error,0),descriptiondq = case when coalesce(is_error,0) = 0 then null else error_description end,IsApproved = case when coalesce(is_error,0)= 0 then null else d.IsApproved end,ModifiedDate = getdate(),\nERPDeliveryAddressStreet = ERP_DeliveryAddressStreet,\nErrorJson = case when coalesce(is_error,0) = 1 then concat( '[' ,\ncase when error_description like '%Delivery Address%' then concat('{\"ErrorType\":\"Shipping Address\",','\"Comment\":\"Delivery Address Street is mismatching with ERP System\"}',\ncase when error_description like '%Material Number%' or descriptiondq like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%'  then  ',' end) end,\ncase when error_description like '%Material Number%'  then concat('{\"ErrorType\":\"Material Number\",','\"Comment\":\"Material Number is missing in ERP System\"}',\ncase when error_description like '%Purchase Order%' or descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Purchase Order%'  then concat('{\"ErrorType\":\"Purchase Order\",','\"Comment\":\"Purchase Order Item already exists in ERP\"}',case when descriptiondq like '%Customer Number%' or descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Customer Number%'  then concat('{\"ErrorType\":\"Customer Number\",','\"Comment\":\"Customer Number is missing in ERP System\"}',case when descriptiondq like '%Artwork%' or descriptiondq like '%CustomerOrder%' then ',' end) end,\ncase when error_description like '%Artwork File%' then concat('{\"ErrorType\":\"Artwork File\",','\"Comment\":\"Artwork File  is missing in ERP System\"}',case when descriptiondq like '%CustomerOrder%' then concat(',{\"ErrorType\":\"Partial Duplicate\"','\"Comment\":\"Order data loaded has duplicates records\"}') end) end,\n']') else null end\nfrom \napp.tbl_aaa_customerorderdata d left join app.tbl_AAA_Orders_existance_temp c\non d.CustomerNumber = c.Kundennummer and d.MaterialNumber = c.ArtikelNummerKunde and d.DeliveryAdressStreet = c.DeliveryAddressStreet\nand d.PurchaseOrder = c.PurchaseOrder and d.Item = c.Item\nwhere d.IsApproved = -1 and d.ApprovalTimestamp >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}';\nselect @@ROWCOUNT",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "cp_aaa_customerorderdata_stg_existance",
+				"description": "Getting the lastest/incremental  Materialnumber, Customernumber, Delivery address street, item, Purchase order data from app.tbl_aaa_customerorderdata_stg table and also getting the same fields from app.tbl_aaa_customerorderdata table where Isapproved= -1.\n\nLoading the above data into table : dbo.tbl_aaa_Orders_ExistanceCheck in the Rako label db.\n\nsource- Azure sql\nsink-Rako label db.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "lk_getdate_watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select cast(CustomerNumber as int) as KundenNummer,MaterialNumber as ArtikelNummerKunde,DeliveryAdressStreet as DeliveryAdressStreet,PurchaseOrder as PurchaseOrder,cast(Item as int) as Item\nfrom app.tbl_aaa_customerorderdata_stg where modifiedTime >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}'\nunion\nselect CustomerNumber as KundenNummer,MaterialNumber as ArtikelNummerKunde,DeliveryAdressStreet as DeliveryAdessStreet,PurchaseOrder as PurchaseOrder,Item as Item\nfrom app.tbl_aaa_customerorderdata where ApprovalTimestamp >'@{activity('lk_getdate_watermark').output.firstRow.last_modified_date}' and IsApproved = -1",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "SqlServerSink",
+						"preCopyScript": "truncate table dbo.tbl_aaa_Orders_ExistanceCheck",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "csvtoazuresqltable",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_rakolabel",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "cp_aaa_customerorderdata_existancecheck",
+				"description": "Doing the 2nd level existence check for parameters sent to Rako from dbo.tbl_aaa_Orders_ExistanceCheck, the output of the check is loaded into tbl_AAA_Orders_existance_temp table in Azure sql database.",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_customerorderdata_stg_existance",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlServerSource",
+						"sqlReaderQuery": ";with cte as(\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Customer Number is not found in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.kunden_aaa_bkp b on a.KundenNummer = b.Kundennummer  where b.kundennummer is null\r\nunion\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet, a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Material Number is not found in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.tbltripleaarticleref_aaa_bkp c on c.TripleARef = a.ArtikelNummerKunde and left(c.etikettennummer,4) = a.kundennummer where c.TripleARef is null\r\nunion\r\nselect a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Delivery Address Street mismatching with ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\nleft join dbo.adressen_aaa_bkp d on d.kundennummer = a.kundennummer and d.IsActive= '-1' and d.Adressart = '1'\r\nwhere (a.DeliveryAdressStreet <> d.Strasse or d.kundennummer is null)\r\nunion\r\nselect distinct a.KundenNummer,a.ArtikelNummerKunde,a.DeliveryAdressStreet,a.Item,a.PurchaseOrder,cast(1 as bit) as [is_error],\r\n'Purchase Order already exists in ERP System' as error_description\r\nfrom dbo.tbl_aaa_Orders_ExistanceCheck a\r\njoin (\r\nSELECT T.Bestellnummer_Kunde,T.BestellnummerPosition,R.ArtikelnummerKunde FROM [RakoLabel].[dbo].[Teilauftraege_aaa_bkp] T\r\nJOIN \r\n[RakoLabel].[dbo].[Rechnungspositionen_aaa_bkp] R\r\nON T.Teilauftragsnummer=R.Teilauftragsnummer\r\n)b on a.PurchaseOrder = b.Bestellnummer_Kunde and a.Item = b.BestellnummerPosition and a.ArtikelNummerKunde = b.ArtikelnummerKunde)\r\n,cte1 as(select KundenNummer,ArtikelNummerKunde,DeliveryAdressStreet,Item,PurchaseOrder,[is_error],\r\nstring_agg(error_description,';') as error_description from cte\r\ngroup by KundenNummer,ArtikelNummerKunde,DeliveryAdressStreet,Item,is_error,PurchaseOrder)\r\nselect \r\n c1.KundenNummer,c1.ArtikelNummerKunde,c1.DeliveryAdressStreet as DeliveryAddressStreet ,c1.Item,c1.PurchaseOrder,is_error,c1.error_description,\r\n (case when c1.error_description like '%Delivery Address%' then strasse else null end) as ERP_DeliveryAddressStreet\r\n from cte1 c1\r\n left join dbo.adressen_aaa_bkp d on d.kundennummer = c1.kundennummer and IsActive= '-1' and Adressart = '1';\r\n select @@ROWCOUNT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "truncate table app.tbl_AAA_Orders_existance_temp",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_rakolabel",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_AAA_Orders_existance",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"parameters": {
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			},
+			"Week": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

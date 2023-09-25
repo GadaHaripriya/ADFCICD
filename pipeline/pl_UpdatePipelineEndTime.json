@@ -1,0 +1,46 @@
+{
+	"name": "pl_UpdatePipelineEndTime",
+	"properties": {
+		"activities": [
+			{
+				"name": "sc_updatePiplelineEndTime",
+				"description": "Updating the Pipeline End time for all the files for the appropriate customer that are processed in the pipeline",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "UPDATE app.tbl_TriggerTable SET PipelineEndTime = GETDATE()\n    WHERE Triggertime< '@{pipeline().parameters.PipelineStartTime}' and PipelineEndTime is null;",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Pre-UI"
+		},
+		"annotations": []
+	}
+}

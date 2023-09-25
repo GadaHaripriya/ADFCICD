@@ -1,0 +1,387 @@
+{
+	"name": "pl_adf_master_aaa_CustomerOrderData_load",
+	"properties": {
+		"activities": [
+			{
+				"name": "lk_incrementaldate_watermarktable",
+				"description": "getting the  last_modified_date from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData'",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "exe_aaa_orders_rako_db",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "select last_modified_date as last_modified_date from app.tbl_watermarktable where table_name = 'app.tbl_aaa_CustomerOrderData'",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "csvtoazuresqltable1",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+				"description": "joining app.tbl_aaa_orders_temp with app.tbl_aaa_master_customerorderdata_stg table  and loading the data into final table -  tbl_aaa_CustomerOrderData",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "lk_incrementaldate_watermarktable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "select a.[MaterialNumber]\n,[PurchaseOrder]\n,[VendorNumber]\n,[VendorName]\n,[VATNumber]\n,[OrderAddressName]\n,[OrderAddressStreet]\n,[OrderAdressPostalCode]\n,[OrderAdressCity]\n,[OrderAdressCountry]\n,[Telephone]\n,[VendorEmail]\n,[Date]\n ,[TermsofPayment]\n ,[ContactPerson]\n ,[Email]\n,[DeliveryAdressName]\n ,[DeliveryAdressNameAddition]\n,[DeliveryAdressStreet]\n ,[DeliveryAdressPostalCode]\n ,[DeliveryAdressCity]\n ,[DeliveryAdressCountry]\n ,[BillingAdressName]\n ,[BillingAdressStreet]\n ,[BillingAdressPostalCode]\n ,[BillingAdressCity]\n ,[BillingAdressCountry]\n,[BillingE-Mail]\n,[BillingcustomerVATNumber]\n,[ResidentCountryVATID]\n,[HeaderText]\n,cast([Item] as int) as Item\n,[Size]\n,[WindingMethod]\n,[Qty]\n,[UOM]\n,cast(replace([UnitPriceCur],',','') as REAL) as [UnitPriceCur]\n,[NetAmount]\n,[DeliveryDate]\n,[SubTotal]\n,[TotalAmount]\n,[Description]\n,case when a.secondary_filepath is null and \nprimary_component is not null and (a.DescriptionDQ not like '%Material Number%' or a.DescriptionDQ is null) then \n\tcase when descriptiondq is null then 'BASE Artwork file has not been uploaded in Source Folder'\n\telse concat([DescriptionDQ],';','BASE Artwork file has not been uploaded in Source Folder') end\nwhen a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0\nand (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\n\tcase when descriptiondq is null then 'Master Data isnt available in RAKO Database'\n\telse concat([DescriptionDQ],';','Master Data isnt available in RAKO Database') end\nwhen a.primary_filepath is null and (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\ncase when descriptiondq is null then 'BOOKLABEL Artwork File is missing in Source Folder'\n\telse concat([DescriptionDQ],';','BOOKLABEL Artwork File has not been uploaded in Source Folder') end\nelse DescriptionDQ \nend as DescriptionDQ\n,cast(a.[CustomerNumber] as int) as [CustomerNumber]\n,[FileName]\n,cast([Etikettennummer] as int) as [Etikettennummer]\n,[Aenderungsindex]\n,[ArtikelnummerKunde]\n,cast([Stammnummer] as int) as Stammnummer\n,[Kundennummer]\n,[Sortentext]\n,[SortentextAusl]\n,[letzte_Bestaetigung]\n,[vorletzte_Bestaetigung]\n,[letzter_Auftrag]\n,[Sortierkriterium]\n,[SortierRegion]\n,[Garniturschluessel]\n,[Anzahl_Klischees]\n,[InLManlegenkannweg]\n,[InLMangelegtkannweg]\n,[Importdurch]\n,[Sortierkriterium1]\n,[Sortierkriterium2]\n,[Sortierkriterium3]\n,[Sortierkriterium4]\n,[Sortierkriterium5]\n,[Sortierkriterium6]\n,[Periodenbedarf]\n,[Bedarfsperiode]\n,[FTKNummer]\n,[Seite]\n,[GarniturID]\n,[Freigabeindex]\n,[LMSStatus]\n,[VorProduktion]\n,[Layoutnummer]\n,[Computer]\n,[GrafikDatenpfad]\n,[Farbtoleranzkarte]\n,[Farbfibel]\n,[VSRSzusammen]\n,[Druckplatte]\n,[Artpro]\n,[DispoKunde]\n,[LMSUpdate]\n,[DVS]\n\n\n\n,[Hintergrundfarbe]\n\n\n\n,[GrafikIdentNr]\n\n\n\n,[Barcode]\n\n\n\n,[CENStufe]\n\n\n\n,[Ablageort]\n\n\n\n,[GewichtEtikett]\n\n\n\n,[KontraktNummer]\n\n\n\n,[PraegeZylID]\n\n\n\n,[WicklungSorte]\n\n\n\n,[Mindestbestand]\n\n\n\n,[CENStufe2D]\n\n\n\n,[LackfreiesFeld]\n\n\n\n,[KundenzertifikatErstellt]\n\n\n\n,[LackKlischee]\n\n\n\n,[KundenzertifikatNr]\n\n\n\n,[KundenzertifikatStatus]\n\n\n\n,[KundenzertifikatFreigabeDatum]\n\n\n\n,[KundeKategorieProjekt]\n\n\n\n,[KundeKategorieMarke]\n\n\n\n,[KundeKategorieProdukt]\n\n\n\n,[ColorManagementSystem]\n\n\n\n,[DVSKommentar]\n\n\n\n,[PruefmerkmalEindeutig]\n\n\n\n,[FarbreferenzSystemID]\n\n\n\n,[FarbreferenzVorlageTypID]\n\n\n\n,[PruefmerkmalArtID]\n\n\n\n,[WicklungID]\n\n\n\n,[CountryCodeID]\n\n\n\n,[Rollenkern]\n\n\n\n,[RollenkernID]\n\n\n\n,[Abrufware]\n\n\n\n,[CustomerBusinessLine]\n\n\n\n,[CustomerProductLine]\n\n\n\n,[CAN]\n\n \n\n      ,[MasterFile]\n\n \n\n      ,[DWRowVersion]\n\n \n\n      ,[CustomerProjectNameOrBrand]\n\n \n\n      ,[CustomerPortfolioID]\n\n \n\n      ,[Format]\n\n \n\n      ,[FormatAusl]\n\n \n\n      ,[Druckzylindernummer]\n\n \n\n      ,[Etiketten_je_Rolle]\n\n \n\n      ,[EtikRolle_genau]\n\n \n\n      ,[Etiketten_je_RolleAusl]\n\n \n\n      ,[Klebstoff]\n\n \n\n      ,[Klebstoff_genau]\n\n \n\n      ,[KlebstoffAusl]\n\n \n\n      ,[Rollenaussendurchmesser]\n\n \n\n      ,[Rollausdurchm_genau]\n\n \n\n      ,[RollenaussendurchmesserAusl]\n\n \n\n      ,[Traegerbahnbreite]\n\n \n\n      ,[Traegerbahn_genau]\n\n \n\n      ,[Wicklung]\n\n \n\n      ,[Wicklung_genau]\n\n \n\n      ,[WicklungAusl]\n\n \n\n      ,[Stammtext]\n\n \n\n      ,[StammtextAusl]\n\n \n\n      ,[Stamm_Kundennummer]\n\n \n\n      ,[Produkt]\n\n \n\n      ,[ProduktAusl]\n\n \n\n      ,[Farben_genau]\n\n \n\n      ,[Farbe]\n\n \n\n      ,[FarbeAusl]\n\n \n\n      ,[Material]\n\n \n\n      ,[Traeger_Genau]\n\n \n\n      ,[Traeger2_Genau]\n\n \n\n      ,[Kaschier_Genau]\n\n \n\n      ,[Heisspraeg_Genau]\n\n \n\n      ,[MaterialAusl]\n\n \n\n      ,[Zusatztext_Stanze]\n\n \n\n      ,[Stamm_Rollenkern]\n\n \n\n      ,[Rollenkern_genau]\n\n \n\n      ,[RollenkernAusl]\n\n \n\n      ,[StammStanze]\n\n \n\n      ,[Materialnummer]\n\n \n\n      ,[Preisstaffelnotiz]\n\n \n\n      ,[Kontrollstufe]\n\n \n\n      ,[Geschw_Text]\n\n \n\n      ,[Speedmaster]\n\n \n\n      ,[Motivwechselkosten]\n\n \n\n      ,[StammMaterialbreite]\n\n \n\n      ,[DV_Datum]\n\n \n\n      ,[StammStanze2]\n\n \n\n      ,[Digital]\n\n \n\n      ,[StammMaterialbreite2]\n\n \n\n      ,[Stanze]\n\n \n\n      ,[Stanze2]\n\n \n\n      ,[Hinweis_DV]\n\n \n\n      ,[Kalkulationsnummer]\n\n \n\n      ,[Sonderfarben_genau]\n\n \n\n      ,[Breite]\n\n \n\n      ,[Hoehe]\n\n \n\n      ,[AnzahlNutzen]\n\n \n\n      ,[Textwechsel]\n\n \n\n      ,[Farbwechsel]\n\n \n\n      ,[MatBreite]\n\n \n\n      ,[Maschine]\n\n \n\n      ,[Gewinnstufe]\n\n \n\n      ,[Gewinnstufe_selekt]\n\n \n\n      ,[DBGrad]\n\n \n\n      ,[Schwierigkeitsgrad]\n\n \n\n      ,[UVLack]\n\n \n\n      ,[Stamm_LackfreiesFeld]\n\n \n\n      ,[ProblematischesGitter]\n\n \n\n      ,[Wendevorrichtung]\n\n \n\n      ,[WendemitDruck]\n\n \n\n      ,[Blattware]\n\n \n\n      ,[Lochung]\n\n \n\n      ,[Perforation]\n\n \n\n      ,[Spezialkleber]\n\n \n\n      ,[GoldSilberlack]\n\n \n\n      ,[PreisMaterial]\n\n \n\n      ,[PreisKaschierfolie]\n\n \n\n      ,[PreisHeisspraegefolie]\n\n \n\n      ,[PreisTraeger2]\n\n \n\n      ,[Geschwindigkeit]\n\n \n\n      ,[PreisMaterialGesamt]\n\n \n\n      ,[Taktzeit]\n\n \n\n      ,[SpezifikationinSorte]\n\n \n\n      ,[Teilangebotsnummer]\n\n \n\n      ,[Angebotsnummer]\n\n \n\n      ,[PreiseGueltigMenge]\n\n \n\n      ,[PreiseGueltigVon]\n\n \n\n      ,[Expresskalkulation]\n\n \n\n      ,[PreiseGueltigBis]\n\n \n\n      ,[technHinweis]\n\n \n\n      ,[Wasserfarben]\n\n \n\n      ,[Gitterabzug]\n\n \n\n      ,[Passert]\n\n \n\n      ,[Farbeinh]\n\n \n\n      ,[Farbmenge]\n\n \n\n      ,[Bahntrennung]\n\n \n\n      ,[Kleberdruck]\n\n \n\n      ,[Flexprint]\n\n \n\n      ,[Gravur]\n\n \n\n      ,[MattLack]\n\n \n\n      ,[StanzeID]\n\n \n\n      ,[Stanze2ID]\n\n \n\n      ,[Stamm_Druckplatte]\n\n \n\n      ,[Einrichtekosten]\n\n \n\n      ,[MaschineID]\n\n \n\n      ,[PreisMaterialEuro]\n\n \n\n      ,[PreisKaschierfolieEuro]\n\n \n\n      ,[PreisHeisspraegefolieEuro]\n\n \n\n      ,[PreisMaterial2Euro]\n\n \n\n      ,[PreisMaterialGesamtEuro]\n\n \n\n      ,[EinrichtekostenEuro]\n\n \n\n      ,[MotivwechselkostenEuro]\n\n \n\n      ,[Stamm_ArtPro]\n\n \n\n      ,[Basisruestkosten]\n\n \n\n      ,[BasisruestkostenEuro]\n\n \n\n      ,[EinrichteWechselkosten]\n\n \n\n      ,[EinrichteWechselkostenEuro]\n\n \n\n      ,[Fortdruckkosten]\n\n \n\n      ,[FortdruckkostenEuro]\n\n \n\n      ,[Mindestbestellmenge]\n\n \n\n      ,[SortenProBestellung]\n\n \n\n      ,[FertigungenMax]\n\n \n\n      ,[Versandanweisung]\n\n \n\n      ,[Konfektionieranweisung]\n\n \n\n      ,[Qualitaetsanweisung]\n\n \n\n      ,[Produktionsanweisung]\n\n \n\n      ,[Grafikanweisung]\n\n \n\n      ,[Stamm_Ablageort]\n\n \n\n      ,[LackID]\n\n \n\n      ,[Lack2ID]\n\n \n\n      ,[QSProduktionsanweisung]\n\n \n\n      ,[Stamm_CENStufe]\n\n \n\n      ,[StarterFoil]\n\n \n\n      ,[Zusatzwerkzeug]\n\n \n\n      ,[TaktzeitGeprueft]\n\n \n\n      ,[PraegefolieMehrfachverwendung]\n\n \n\n      ,[DrucklaengeFlexo]\n\n \n\n      ,[DrucklaengeSieb]\n\n \n\n      ,[MaterialspezifikationStatus]\n\n \n\n      ,[Farbanforderungsstufe]\n\n \n\n      ,[GrundEtikettenNummer]\n\n \n\n      ,[TextWechselKostenEuro]\n\n \n\n      ,[FrachtkostenZuschlagEuro]\n\n \n\n      ,[TaktzeitDigital]\n\n \n\n      ,[TaktzeitDigitalGeprueft]\n\n \n\n      ,[FortdruckkostenTenderEuro]\n\n \n\n      ,[FarbanforderungsstufeRisiko]\n\n \n\n      ,[FarbanforderungsstufeKommentar]\n\n \n\n      ,[ProduktID]\n\n \n\n      ,[Kernstaerke]\n\n \n\n      ,[Kernbreite]\n\n \n\n      ,[Wicklungsstaerke]\n\n \n\n      ,[HundertProzentKontrolle]\n\n \n\n      ,[Messerart]\n\n \n\n      ,[NeutraleKonfektionierung]\n\n \n\n      ,[Musterangaben]\n\n \n\n      ,[IDAngebotPosition]\n\n \n\n      ,[Einrichtemeter]\n\n \n\n      ,[Einrichtemeter_geprueft]\n\n \n\n      ,[BasisruestkostenVorAenderungEuro]\n\n \n\n      ,[EinrichteWechselkostenVorAenderungEuro]\n ,[FortdruckkostenVorAenderungEuro]\n ,[EtikettJeRolleEinheit]\n,[Stamm_DWRowVersion]\n,getdate() as [insertedDate]\n,null as [IsApproved]\n ,null as [ApproverComments]\n,ERPDeliveryAddressStreet as ERPDeliveryAddressStreet\n,null as [New_Etikettennummer]\n,null as [New_Stammnummer]\n,keycolumn as KeyColumn\n,case when a.secondary_filepath is null and primary_component is not null and (a.DescriptionDQ not like '%Material Number%' or a.DescriptionDQ is null) then\ncase when errorjson is null then '[{\"ErrorType\":\"Artwork File\",\"Comment\":\"BASE Artwork File has not been uploaded in Source Folder\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Artwork File\",\"Comment\":\"BASE Artwork File has not been uploaded in Source Folder\"}]')\nend\nwhen a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0\nand (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then case\nwhen errorjson is null\nthen '[{\"ErrorType\":\"Master Data\",\"Comment\":\"Master Data isnt available in RAKO Database\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Master Data\",\"Comment\":\"Master Data isnt available in RAKO Database\"}]')\nend\nwhen a.primary_filepath is null and (a.DescriptionDQ not like '%Material Number%'or a.DescriptionDQ is null) then\ncase\nwhen errorjson is null\nthen '[{\"ErrorType\":\"Artwork File\",\"Comment\":\"BOOKLABEL Artwork File is missing in Source Folder\"}]'\nelse concat(substring(errorjson,1,len(errorjson)-1),',{\"ErrorType\":\"Artwork File\",\"Comment\":\"BOOKLABEL Artwork File has not been uploaded in Source Folder\"}]')\nend\nelse errorjson end as ErrorJSON\n ,Id as Id\n\n \n\n      ,CustomerName as CustomerName\n\n \n\n      ,'FALSE' as IsProcessed\n\n \n\n      ,FolderHierarchy as FolderHierarchy\n\n \n\n      ,a.[PageCount] as PageCount\n\n \n\n      ,b.ProductName as ProductName\n\n \n\n        ,KonfPruefungErforderlich as KonfPruefungErforderlich\n\n \n\n      ,Stamm_FSC_IstZertifiziert\n\n \n\n      ,b.TripleARef\n\n ,TriggerTableID as TriggerTableID\n\n      ,case\n       when (a.secondary_filepath is null and primary_component is not null) or (a.Primary_filepath is not null and primary_component is null and a.[Pagecount] <> 0) then 1 else IsErrorDQ end as IsErrorDQ,\n       primary_filepath as primary_filepath,secondary_filepath as secondary_filepath\nfrom\n      app.tbl_aaa_master_customerorderdata_stg a\nleft join app.tbl_AAA_Orders_temp b on a.MaterialNumber = b.ArtikelNummerKunde and a.CustomerNumber=b.KundenNummer and a.PageCount = b.PageCount\nwhere a.modifiedTime > '@{activity('lk_incrementaldate_watermarktable').output.firstRow.last_modified_date}'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_asql_ArtworkFileMetadata1",
+						"type": "DatasetReference"
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_aaa_CustomerOrderData1",
+						"type": "DatasetReference"
+					}
+				]
+			},
+			{
+				"name": "lk_update_date_watermarktable",
+				"description": "Updating the watermark table.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": "update app.tbl_watermarktable\r\nset last_modified_date = (select max(insertedDate) from app.tbl_aaa_CustomerOrderData)\r\nwhere table_name = 'app.tbl_aaa_CustomerOrderData';\r\nselect @@ROWCOUNT",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_AAA_OrderDetails_temp1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "exe_aaa_orders_rako_db",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "pl_adf_aaa_Orders_Rako_db1",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "sp_auditlogs-stage_master_success",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_AuditLogStagetoMaster]",
+					"storedProcedureParameters": {
+						"Errors": {
+							"value": null,
+							"type": "String"
+						},
+						"MasterCount": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.executionDetails[0].start",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"StageCount": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Status": {
+							"value": "Success",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sp_auditlogs-stage_master_failure",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_AuditLogStagetoMaster]",
+					"storedProcedureParameters": {
+						"Errors": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.errors",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"MasterCount": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PipelineEndTime": {
+							"value": {
+								"value": "@utcNow()",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"PipelineName": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineRunId": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"PipelineStartTime": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.executionDetails[0].start",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"StageCount": {
+							"value": {
+								"value": "@activity('cp_aaa_Orders_stg_aaa_CustomerOrderData').output.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Status": {
+							"value": "Failure",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "sp_SecondLevel_AuditLogs",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "cp_aaa_Orders_stg_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[app].[usp_AuditLogsStagetoMaster]",
+					"storedProcedureParameters": {
+						"filereportingmonth": {
+							"value": {
+								"value": "@pipeline().parameters.Month",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"filereportingyear": {
+							"value": {
+								"value": "@pipeline().parameters.Year",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"modifieddate": {
+							"value": {
+								"value": "@pipeline().parameters.PipelineStartTime",
+								"type": "Expression"
+							},
+							"type": "DateTime"
+						},
+						"pipelinename": {
+							"value": {
+								"value": "@pipeline().Pipeline",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"pipelinerunid": {
+							"value": {
+								"value": "@pipeline().RunId",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_sql_a4ltriplea",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"PipelineStartTime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-08-07T14:47:05Z"
+	}
+}

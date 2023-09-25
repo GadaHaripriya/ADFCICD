@@ -1,0 +1,121 @@
+{
+	"name": "pl_adf_pre_UI",
+	"properties": {
+		"activities": [
+			{
+				"name": "sv_pl_starttime",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "pipeline_starttime",
+					"value": {
+						"value": "@pipeline().TriggerTime",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "lk_tbl_Triggertable",
+				"description": "Look up into control table -\n[app].[tbl_MainControlTable] for source folder name which is the customername",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "sv_pl_starttime",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "IF EXISTS\n(\nselect T.Id as TID,T.CustomerName as FolderName,max(Triggertime) as Triggertime,FileName,FileType,IsProcessed,T.CustomerNumber as TCustomerNumber,M.Id as MID,M.CustomerName as CustomerName,M.CustomerNumber as CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable from [app].[tbl_TriggerTable] AS T left join [app].[tbl_MainControlTable] AS M on T.CustomerNumber=M.CustomerNumber where t.Triggertime< '@{variables('pipeline_starttime')}' and IsProcessed=0 and FileType='OrderFile' and PipelineEndTime is null GROUP BY T.ID,T.CustomerName,FileName,FileType,IsProcessed,T.CustomerNumber,M.ID,M.CustomerName,M.CustomerNumber,CSVColumnMapping,XLSXColumnMapping,PDFMapping,FormRecogniserModelID,ModifiedBy,ModifiedDate,PDFSourceColumns,PDFTargetColumns,CSVTargetColumns,CSVSourceColumns,XLSXSourceColumns,XLSXTargetColumns,FormRecogniserTableName,IsCSVHeaderAvailable,IsXLSXHeaderAvailable\n)\nSELECT 'True';\nELSE\nSELECT 'False'",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "If Condition",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_Triggertable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@contains(string(activity('lk_tbl_Triggertable').output.firstRow),'True')",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Wait2",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "exe_adf_preUI_child",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "pl_adf_child_preUI",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"pl_starttime": {
+										"value": "@variables('pipeline_starttime')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"pipeline_starttime": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Pre-UI"
+		},
+		"annotations": []
+	}
+}

@@ -1,0 +1,142 @@
+{
+	"name": "pl_rejected_data_injestion_v1",
+	"properties": {
+		"activities": [
+			{
+				"name": "fe_rejected_data_injestion",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "lk_tbl_aaa_CustomerOrderData",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('lk_tbl_aaa_CustomerOrderData').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "cp_rejected_data_injestion",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderQuery": {
+										"value": "SELECT [Id]\n      ,[CustomerName]\n      ,[CustomerNumber]\n      ,[MaterialNumber]\n      ,[Application]\n      ,[FileName]\n      ,[filePath]\n      ,[PurchaseOrder]\n      ,[Item]\n      ,[Size]\n      ,[Description]\n      ,[Qty]\n      ,[WindingMethod]\n      ,[UOM]\n      ,[UnitPriceCur]\n      ,[NetAmount]\n      ,[DeliveryDate]\n      ,[VendorNumber]\n      ,[VendorName]\n      ,[VATNumber]\n      ,[OrderAddressName]\n      ,[OrderAddressStreet]\n      ,[OrderAdressPostalCode]\n      ,[OrderAdressCity]\n      ,[OrderAdressCountry]\n      ,[Telephone]\n      ,[VendorEmail]\n      ,[Date]\n      ,[TermsofPayment]\n      ,[ContactPerson]\n      ,[Email]\n      ,[DeliveryAdressName]\n      ,[DeliveryAdressNameAddition]\n      ,[DeliveryAdressStreet]\n      ,[DeliveryAdressPostalCode]\n      ,[DeliveryAdressCity]\n      ,[DeliveryAdressCountry]\n      ,[BillingAdressName]\n      ,[BillingAdressStreet]\n      ,[BillingAdressPostalCode]\n      ,[BillingAdressCity]\n      ,[BillingAdressCountry]\n      ,[BillingE-Mail]\n      ,[BillingcustomerVATNumber]\n      ,[ResidentCountryVATID]\n      ,[HeaderText]\n      ,[SubTotal]\n      ,[TotalAmount]\n      ,[modified_timestamp]\n      ,[FolderHierarchy]\n      ,[KeyColumn]\n      ,[IsErrorDQ]\n      ,[DescriptionDQ]\n   \n      ,[ERPDeliveryAddressStreet]\n      \n      ,[insertedDate]\n      ,[IsApproved]\n      ,[Approver]\n      ,[ApproverComments]\n      ,[ApprovalTimestamp]\n\n FROM [app].[tbl_aaa_CustomerOrderData]\nWHERE IsApproved=0 and FileName='@{item().FileName}' and ApprovalTimestamp between (SELECT last_modified_date FROM app.tbl_watermarktable WHERE table_name ='app.tbl_Order_Creation_Inputs') and '@{pipeline().parameters.pipeline_starttime}'\n    ",
+										"type": "Expression"
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_aaa_CustomerOrderData",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_rejected_data_injestion",
+									"type": "DatasetReference",
+									"parameters": {
+										"Folderpath": {
+											"value": "@{item().CustomerName}/@{item().CustomerNumber}/@{pipeline().parameters.Year}/@{pipeline().parameters.Month}/@{pipeline().parameters.Week}/Level-2/",
+											"type": "Expression"
+										},
+										"FileName": {
+											"value": "@concat('Rejected-',item().FileName)",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			},
+			{
+				"name": "lk_tbl_aaa_CustomerOrderData",
+				"description": "",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "WITH CTE\nAS (\n\tSELECT DISTINCT CustomerNumber\n\t,CustomerName\n\t,FileName FROM [app].[tbl_aaa_CustomerOrderData] WHERE ApprovalTimestamp BETWEEN (\n\t\t\tSELECT last_modified_date\n\t\t\tFROM app.tbl_watermarktable\n\t\t\tWHERE table_name = 'app.tbl_Order_Creation_Inputs'\n\t\t\t) and '@{pipeline().parameters.pipeline_starttime}' and IsApproved=0 \n\t) SELECT CTE.CustomerName\n\t,CTE.CustomerNumber\n\t,CTE.FileName FROM CTE \n\tJOIN [app].[tbl_MainControlTable] MC ON MC.CustomerNumber = CTE.CustomerNumber",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_asql_maincontroltable",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"parameters": {
+			"Year": {
+				"type": "string"
+			},
+			"Month": {
+				"type": "string"
+			},
+			"week": {
+				"type": "string"
+			},
+			"pipeline_starttime": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Child Pipelines/Child Pipelines Post-UI/Rejected Data Ingestion"
+		},
+		"annotations": []
+	}
+}

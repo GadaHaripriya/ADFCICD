@@ -1,0 +1,16 @@
+{
+	"name": "ds_rakolabel_ordercreationinput",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_SqlServer",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "tbl_Order_Creation_Input"
+		}
+	}
+}
