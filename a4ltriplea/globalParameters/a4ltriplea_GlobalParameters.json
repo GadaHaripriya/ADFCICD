@@ -1,1 +1,6 @@
-{}
+{
+	"fr_url": {
+		"type": "string",
+		"value": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"
+	}
+}

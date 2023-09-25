@@ -522,7 +522,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -767,7 +767,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -972,7 +972,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:06Z"
@@ -2361,7 +2361,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:06Z"
@@ -2727,7 +2727,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -3127,7 +3127,7 @@
 												"type": "Expression"
 											},
 											"FormRecognizerURL": {
-												"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+												"value": "@concat(pipeline().globalParameters.fr_url,item().Model_ID,':analyze?api-version=2022-08-31')",
 												"type": "Expression"
 											},
 											"FormRecognizerKey": {
@@ -3422,7 +3422,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
 				},
 				"annotations": []
 			},
@@ -3796,7 +3796,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T17:00:04Z"
@@ -4308,7 +4308,7 @@
 					"cancelAfter": {}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},
@@ -4439,7 +4439,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
 				},
 				"annotations": []
 			},
@@ -4677,7 +4677,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},
@@ -4732,7 +4732,7 @@
 					"cancelAfter": {}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},

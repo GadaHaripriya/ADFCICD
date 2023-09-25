@@ -3016,7 +3016,7 @@
 												"type": "Expression"
 											},
 											"FormRecognizerURL": {
-												"value": "@concat('https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/',item().Model_ID,':analyze?api-version=2022-08-31')",
+												"value": "@concat(pipeline().globalParameters.fr_url,item().Model_ID,':analyze?api-version=2022-08-31')",
 												"type": "Expression"
 											},
 											"FormRecognizerKey": {
@@ -3448,7 +3448,7 @@
 					"cancelAfter": {}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},
@@ -3504,7 +3504,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
 				},
 				"annotations": []
 			},
@@ -3704,7 +3704,7 @@
 					"cancelAfter": {}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -3874,7 +3874,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1/Email-level 1-child"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1/Email-level 1-child"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -4044,7 +4044,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -4108,7 +4108,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1/Email-level 1-child"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1/Email-level 1-child"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-07-27T08:11:44Z"
@@ -4169,7 +4169,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -4445,7 +4445,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
 				},
 				"annotations": []
 			},
@@ -4822,7 +4822,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T17:00:04Z"
@@ -5228,7 +5228,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/5.CustomerOrderData"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -5614,7 +5614,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/ArtworkFileHandling"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/ArtworkFileHandling"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -5866,7 +5866,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/4.Email Level-1"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -6076,7 +6076,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Email alerts"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:06Z"
@@ -6171,7 +6171,7 @@
 					"cancelAfter": {}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},
@@ -6271,7 +6271,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Master Pipelines"
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
 				},
 				"annotations": []
 			},
@@ -6863,7 +6863,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child/Pipeline_raw_prestage_pdf"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child/Pipeline_raw_prestage_pdf"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -8258,7 +8258,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:06Z"
@@ -8622,7 +8622,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -8757,7 +8757,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI"
 				},
 				"annotations": []
 			},
@@ -9100,7 +9100,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -9441,7 +9441,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/1.Ingestion Pipelines/Ingestion Master/Ingestion Child"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -9811,7 +9811,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -10834,7 +10834,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Rejected Data Ingestion"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Post-UI/Rejected Data Ingestion"
 				},
 				"annotations": []
 			},
@@ -11153,7 +11153,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/2.Sanity Level-1"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/2.Sanity Level-1"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
@@ -11273,7 +11273,7 @@
 					}
 				},
 				"folder": {
-					"name": "Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/Sanitychecks"
+					"name": "Graphicfile/Final Pipeline/Child Pipelines/Child Pipelines Pre-UI/3.Existence check Sanity Level-2/Sanitychecks"
 				},
 				"annotations": [],
 				"lastPublishTime": "2023-08-07T14:47:05Z"
