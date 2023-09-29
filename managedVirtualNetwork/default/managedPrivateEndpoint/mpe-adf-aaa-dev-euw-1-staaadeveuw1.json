@@ -1,0 +1,7 @@
+{
+	"name": "mpe-adf-aaa-dev-euw-1-staaadeveuw1",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/c070fca9-0b60-4396-90e3-e5a0723ae60d/resourceGroups/A4LTripleA/providers/Microsoft.Storage/storageAccounts/adlsa4ltriplea",
+		"groupId": "dfs"
+	}
+}
