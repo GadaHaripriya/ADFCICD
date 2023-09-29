@@ -15,6 +15,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage2'"
 		},
+		"AzureDataLakeStorage3_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'AzureDataLakeStorage3'"
+		},
 		"AzureDatabricks1_accessToken": {
 			"type": "secureString",
 			"metadata": "Secure string for 'accessToken' of 'AzureDatabricks1'"
@@ -67,6 +71,10 @@
 			"type": "string",
 			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
 		},
+		"AzureDataLakeStorage3_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
 		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
 			"type": "string",
 			"defaultValue": "0925-072229-bg7pclm4"
@@ -110,6 +118,14 @@
 		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_privateLinkResourceId": {
+			"type": "string",
+			"defaultValue": "/subscriptions/c070fca9-0b60-4396-90e3-e5a0723ae60d/resourceGroups/A4LTripleA/providers/Microsoft.Storage/storageAccounts/adlsa4ltriplea"
+		},
+		"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_groupId": {
+			"type": "string",
+			"defaultValue": "dfs"
 		},
 		"default_properties_fr_url_value": {
 			"type": "string",
@@ -300,6 +316,12 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_privateLinkResourceId": {
+						"value": "[parameters('mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_privateLinkResourceId')]"
+					},
+					"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_groupId": {
+						"value": "[parameters('mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_groupId')]"
 					}
 				}
 			},
@@ -320,6 +342,12 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
+					},
+					"AzureDataLakeStorage3_accountKey": {
+						"value": "[parameters('AzureDataLakeStorage3_accountKey')]"
+					},
+					"AzureDataLakeStorage3_properties_typeProperties_url": {
+						"value": "[parameters('AzureDataLakeStorage3_properties_typeProperties_url')]"
 					}
 				}
 			},
@@ -345,6 +373,26 @@
 			},
 			"dependsOn": [
 				"[resourceId('Microsoft.Resources/deployments', 'a4ltriplea_ArmTemplate_5')]"
+			]
+		},
+		{
+			"name": "a4ltriplea_ArmTemplate_7",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_7.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'a4ltriplea_ArmTemplate_6')]"
 			]
 		}
 	]

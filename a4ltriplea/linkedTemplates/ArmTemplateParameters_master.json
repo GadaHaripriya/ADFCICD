@@ -11,6 +11,9 @@
 		"AzureDataLakeStorage2_accountKey": {
 			"value": ""
 		},
+		"AzureDataLakeStorage3_accountKey": {
+			"value": ""
+		},
 		"AzureDatabricks1_accessToken": {
 			"value": ""
 		},
@@ -50,6 +53,9 @@
 		"AzureDataLakeStorage2_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
 		},
+		"AzureDataLakeStorage3_properties_typeProperties_url": {
+			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
 		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
 			"value": "0925-072229-bg7pclm4"
 		},
@@ -82,6 +88,12 @@
 		},
 		"ls_sourceforrejectedfiles_properties_typeProperties_url": {
 			"value": "https://adlsa4ltriplea.dfs.core.windows.net/"
+		},
+		"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_privateLinkResourceId": {
+			"value": "/subscriptions/c070fca9-0b60-4396-90e3-e5a0723ae60d/resourceGroups/A4LTripleA/providers/Microsoft.Storage/storageAccounts/adlsa4ltriplea"
+		},
+		"mpe-adf-aaa-dev-euw-1-staaadeveuw1_properties_groupId": {
+			"value": "dfs"
 		},
 		"default_properties_fr_url_value": {
 			"value": "https://tripleaformrecog.cognitiveservices.azure.com/formrecognizer/documentModels/"

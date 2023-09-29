@@ -1,0 +1,167 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "a4ltriplea"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_adf_master_preUI')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "exe_adf_master_pipeline_preUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_pre_UI",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "wb_pipelinesuccess_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_preUI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelinecomplete/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=1fTPFOE63huyqdMTntICdmHsVhsLEMgIz_MNc3-Rfjo",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "wb_pipelinefailure_email",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "exe_adf_master_pipeline_preUI",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://logic-aaa-dev-euw-3.azurewebsites.net:443/api/wf_pipelineFailure/triggers/When_a_HTTP_request_is_received/invoke?api-version=2022-05-01&sp=%2Ftriggers%2FWhen_a_HTTP_request_is_received%2Frun&sv=1.0&sig=b5CJOeqZcyEjbwEi6sZ2GZv7YK7LpHKOjGHc-EQaNec",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Pipelinename\":\"@{pipeline().Pipeline}\",\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"lk": {
+						"type": "String"
+					},
+					"lk1": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_Master')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "exe_pl_master_preUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_preUI",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "exe_pl_master_postUI",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "exe_pl_master_preUI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "pl_adf_master_postUI_approvals",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Graphicfile/Final Pipeline/Master Pipelines"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_adf_master_preUI')]"
+			]
+		}
+	]
+}
